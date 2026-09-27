@@ -16,6 +16,9 @@ import { PreflopTrainerScreen } from './screens/train/PreflopTrainerScreen';
 import { PreflopDrillScreen } from './screens/train/PreflopDrillScreen';
 import { PaintRangeScreen } from './screens/train/PaintRangeScreen';
 import { RangeEditorScreen } from './screens/train/RangeEditorScreen';
+import { PostflopTrainerScreen } from './screens/train/PostflopTrainerScreen';
+import { PostflopDrillScreen } from './screens/train/PostflopDrillScreen';
+import { ReplaySpotScreen } from './screens/train/ReplaySpotScreen';
 
 /** Full-screen routes (drills, the table) hide the tab bar so nothing covers the controls. */
 const IMMERSIVE = [/^\/train\/[^/]+\/play/, /^\/play\/table/];
@@ -47,6 +50,9 @@ export default function App() {
                 <Route path="/train/preflop/play" element={<PreflopDrillScreen />} />
                 <Route path="/train/preflop/paint" element={<PaintRangeScreen />} />
                 <Route path="/train/preflop/editor" element={<RangeEditorScreen />} />
+                <Route path="/train/postflop" element={<PostflopTrainerScreen />} />
+                <Route path="/train/postflop/play" element={<PostflopDrillScreen />} />
+                <Route path="/train/postflop/replay" element={<ReplaySpotScreen />} />
                 <Route path="/play" element={<PlayScreen />} />
                 <Route path="/review" element={<ReviewScreen />} />
                 <Route path="/learn" element={<LearnScreen />} />

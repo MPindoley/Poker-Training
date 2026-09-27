@@ -34,7 +34,7 @@ export interface ChartJson {
 export type SpotKind = 'rfi' | 'vsOpen' | 'vs3bet';
 export type PreflopAction = 'raise' | 'limp' | 'fold' | 'call' | '3bet' | '4bet';
 
-export interface Spot {
+export interface PreflopSpot {
   kind: SpotKind;
   /** Hero's seat. */
   seat: string;
@@ -146,7 +146,7 @@ export class Chart {
     return { ranges: { '4bet': cachedRange(fourBet), call: cachedRange(call) }, notation: { '4bet': fourBet, call }, path };
   }
 
-  spot(s: Spot): ActionRanges | null {
+  spot(s: PreflopSpot): ActionRanges | null {
     if (s.kind === 'rfi') return this.rfi(s.seat);
     if (s.kind === 'vsOpen') return this.vsOpen(s.seat, s.opener ?? '');
     return this.vs3bet(s.seat);

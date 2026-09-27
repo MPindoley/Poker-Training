@@ -12,3 +12,5 @@ export * from './Celebration';
 export * from './RichText';
 export * from './StrategyGrid';
 export * from './WeightGrid';
+export * from './CardPicker';
+export * from './Chips';

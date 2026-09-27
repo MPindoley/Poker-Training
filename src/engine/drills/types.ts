@@ -39,6 +39,8 @@ export interface QuestionContext {
   facts?: Fact[];
   /** Free text about the opponent(s), e.g. "Villain: top pair (KQ)". */
   villain?: string;
+  /** Action so far, one line per street. */
+  lines?: string[];
 }
 
 export interface Explanation {
@@ -74,6 +76,8 @@ export interface Question {
   /** Extra skill keys to record the answer under (e.g. seat and hand-group tracking). */
   tags?: string[];
   visual?: StrategyVisual;
+  /** Several pictures, e.g. a range shrinking street by street. */
+  visuals?: StrategyVisual[];
 }
 
 export function bestChoice(q: Question): Choice {

@@ -14,3 +14,5 @@ export * from './progression';
 export * from './drills';
 export * from './cheatsheet';
 export * from './preflop';
+export * from './postflop';
+export * from './strategy';

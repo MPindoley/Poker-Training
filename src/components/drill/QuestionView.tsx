@@ -30,6 +30,15 @@ export function QuestionContextView({ context }: { context: QuestionContext }) {
           </div>
         </div>
       )}
+      {context.lines && context.lines.length > 0 && (
+        <ol className="relative mt-2 space-y-0.5 rounded-xl bg-ink/40 px-2.5 py-1.5 text-left text-xs font-semibold text-cream/90">
+          {context.lines.map((l, i) => (
+            <li key={i}>
+              <RichText text={l} />
+            </li>
+          ))}
+        </ol>
+      )}
       {villain && (
         <p className="relative mt-2 text-center text-sm font-bold text-cream">
           <RichText text={villain} />

@@ -211,6 +211,7 @@ export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion,
             >
               <RichText text={answer?.feedback ?? question.explanation.summary} />
               {question.visual && <StrategyGrid visual={question.visual} className="mt-2" />}
+              {question.visuals?.map((v, i) => <StrategyGrid key={i} visual={v} className="mt-2" />)}
             </FeedbackBanner>
           )}
         </motion.div>
@@ -233,7 +234,7 @@ export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion,
                           : 'bg-cream/80 text-ink/70'
                   }`}
                 >
-                  {c.label} · {GRADE_LABEL[c.grade]}
+                  <RichText text={c.label} /> · {GRADE_LABEL[c.grade]}
                   {c.note && <span className="block font-mono text-[11px]">{c.note}</span>}
                 </div>
               ))}
@@ -245,8 +246,8 @@ export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion,
         ) : (
           <div className={`grid gap-2.5 ${question.choices.length === 3 ? 'grid-cols-1' : 'grid-cols-2'}`}>
             {question.choices.map((c) => (
-              <GameButton key={c.id} color="cream" size="lg" className="min-h-16" onClick={() => choose(c)}>
-                {c.label}
+              <GameButton key={c.id} color="cream" size={question.choices.length > 4 ? 'md' : 'lg'} className="min-h-14" onClick={() => choose(c)}>
+                <RichText text={c.label} />
               </GameButton>
             ))}
           </div>
