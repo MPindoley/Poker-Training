@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { levelFromXp } from '../engine';
 import { useProgress } from '../state/progressStore';
-import { toast } from '../state/toastStore';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { GameButton, Panel, ProgressBar, XPBadge } from '../components/ui';
+import { FlameIcon } from '../components/icons/FlameIcon';
 
 export function HomeScreen() {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ export function HomeScreen() {
         <div className="flex items-center justify-between font-display">
           <span className="text-lg">Level {lvl.level}</span>
           <span className="flex items-center gap-1.5 text-lg text-gold-300">
-            <FlameIcon /> {streak} day streak
+            <FlameIcon className="h-6 w-6" /> {streak} day streak
           </span>
         </div>
         <ProgressBar
@@ -44,7 +44,7 @@ export function HomeScreen() {
         <div className="grid grid-cols-2 gap-3">
           <GameButton color="gold" onClick={() => navigate('/train')}>Train</GameButton>
           <GameButton color="blue" onClick={() => navigate('/play')}>Play</GameButton>
-          <GameButton color="red" onClick={() => toast({ tone: 'info', title: 'Coming soon', message: 'Pot odds drill is next.' })}>
+          <GameButton color="red" onClick={() => navigate('/train/math/play?kind=math.potodds&d=bronze')}>
             Odds Drill
           </GameButton>
           <GameButton color="purple" onClick={() => navigate('/review')}>Log Hand</GameButton>
@@ -55,20 +55,5 @@ export function HomeScreen() {
         Open Styleguide
       </GameButton>
     </div>
-  );
-}
-
-function FlameIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden>
-      <path
-        d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 1.5-4.5 3-6 0 2 1 3 2 3 0-3-1-6 1-9z"
-        fill="#ff8a3d"
-        stroke="#1b1230"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <path d="M12 12c1.5 1.5 3 3 3 5a3 3 0 0 1-6 0c0-1.5 1.5-3 3-5z" fill="#ffe27a" />
-    </svg>
   );
 }

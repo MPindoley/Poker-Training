@@ -11,3 +11,5 @@ export * from './odds';
 export * from './chips';
 export * from './grading';
 export * from './progression';
+export * from './drills';
+export * from './cheatsheet';

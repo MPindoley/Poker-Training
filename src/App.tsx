@@ -9,9 +9,16 @@ import { ReviewScreen } from './screens/ReviewScreen';
 import { LearnScreen } from './screens/LearnScreen';
 import { StyleguideScreen } from './screens/StyleguideScreen';
 import { DebugEquityScreen } from './screens/DebugEquityScreen';
+import { MathTrainerScreen } from './screens/train/MathTrainerScreen';
+import { MathDrillScreen } from './screens/train/MathDrillScreen';
+import { CheatSheetScreen } from './screens/train/CheatSheetScreen';
+
+/** Full-screen routes (drills, the table) hide the tab bar so nothing covers the controls. */
+const IMMERSIVE = [/^\/train\/[^/]+\/play/, /^\/play\/table/];
 
 export default function App() {
   const location = useLocation();
+  const immersive = IMMERSIVE.some((re) => re.test(location.pathname));
   return (
     <MotionConfig reducedMotion="user">
       <div className="relative mx-auto min-h-full max-w-[430px]">
@@ -23,12 +30,15 @@ export default function App() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-            className="pt-safe px-4 pb-32"
+            className={`pt-safe px-4 ${immersive ? 'pb-safe' : 'pb-32'}`}
           >
             <div className="pt-4">
               <Routes location={location}>
                 <Route path="/" element={<HomeScreen />} />
                 <Route path="/train" element={<TrainScreen />} />
+                <Route path="/train/math" element={<MathTrainerScreen />} />
+                <Route path="/train/math/play" element={<MathDrillScreen />} />
+                <Route path="/train/math/cheatsheet" element={<CheatSheetScreen />} />
                 <Route path="/play" element={<PlayScreen />} />
                 <Route path="/review" element={<ReviewScreen />} />
                 <Route path="/learn" element={<LearnScreen />} />
@@ -39,7 +49,7 @@ export default function App() {
             </div>
           </motion.main>
         </AnimatePresence>
-        <TabBar />
+        {!immersive && <TabBar />}
       </div>
     </MotionConfig>
   );
