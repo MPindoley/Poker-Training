@@ -2,7 +2,22 @@
  * Message protocol for the engine Web Worker. Only plain, cloneable data crosses the boundary
  * (ranges are typed arrays, which structured-clone fine).
  */
-import { analyzeSpot, calculateEquity, type AnalyzeOptions, type EquityOptions, type EquityResult, type Spot, type SpotAnalysis } from '../engine';
+import {
+  analyzeLoggedHand,
+  analyzeSpot,
+  buildCharts,
+  calculateEquity,
+  type AnalyzeOptions,
+  type ChartJson,
+  type ChartOverrides,
+  type EquityOptions,
+  type EquityResult,
+  type LoggedHand,
+  type LoggedHandAnalysis,
+  type Spot,
+  type SpotAnalysis,
+  type VillainModel,
+} from '../engine';
 
 export interface EquityJob {
   id: number;
@@ -19,10 +34,20 @@ export interface AnalyzeJob {
   options?: AnalyzeOptions;
 }
 
-export type EngineJob = EquityJob | AnalyzeJob;
+export interface LoggedJob {
+  id: number;
+  kind: 'logged';
+  hand: LoggedHand;
+  library: Record<string, ChartJson>;
+  overrides: Record<string, ChartOverrides>;
+  chartId: string;
+  model: VillainModel;
+}
+
+export type EngineJob = EquityJob | AnalyzeJob | LoggedJob;
 
 export type EquityReply = { id: number; ok: true; result: EquityResult } | { id: number; ok: false; error: string };
-export type EngineReply = { id: number; ok: true; result: EquityResult | SpotAnalysis } | { id: number; ok: false; error: string };
+export type EngineReply = { id: number; ok: true; result: EquityResult | SpotAnalysis | LoggedHandAnalysis } | { id: number; ok: false; error: string };
 
 /** Pure handler, shared by the worker and by tests. */
 export function handleEquityJob(job: EquityJob): EquityReply {
@@ -34,6 +59,14 @@ export function handleEquityJob(job: EquityJob): EquityReply {
 }
 
 export function handleEngineJob(job: EngineJob): EngineReply {
+  if (job.kind === 'logged') {
+    try {
+      const chart = buildCharts(job.library, job.overrides)[job.chartId]!;
+      return { id: job.id, ok: true, result: analyzeLoggedHand(job.hand, chart, job.model) };
+    } catch (e) {
+      return { id: job.id, ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
   if (job.kind === 'analyze') {
     try {
       return { id: job.id, ok: true, result: analyzeSpot(job.spot, job.options) };

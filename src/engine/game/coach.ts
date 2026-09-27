@@ -160,8 +160,22 @@ export function allInAdjusted(s: HandState, heroSeat: number): AllInResult | nul
   return { actual: s.result.net[heroSeat] ?? 0, expected: Math.round((expected - hero.totalIn) * 100) / 100, equity: equityShown };
 }
 
+/** Facts about a decision that the leak finder groups on. */
+export interface DecisionTags {
+  facingBet: boolean;
+  bucket?: string;
+  heroPos?: string;
+  villainArchetype?: string;
+  villainFoldRiver?: number;
+  chosenFraction?: number | null;
+  bestFraction?: number | null;
+  actionType: string;
+  preflopKind?: 'rfi' | 'vsOpen' | 'vs3bet' | 'none';
+}
+
 export interface DecisionReview {
   street: ActionEvent['street'];
+  tags?: DecisionTags;
   action: string;
   grade: Grade | null;
   evLost: number | null;

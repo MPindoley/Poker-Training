@@ -271,7 +271,16 @@ async function reviewHand() {
     const action = describeAction(ev);
     if (d.preflop) {
       const g = gradePreflop(d.preflop, ev.type);
-      decisions.push({ street: 'preflop', action, grade: g?.grade ?? null, evLost: null, equity: null, best: d.preflop.best, note: g?.note ?? d.preflop.situation });
+      decisions.push({
+        street: 'preflop',
+        action,
+        grade: g?.grade ?? null,
+        evLost: null,
+        equity: null,
+        best: d.preflop.best,
+        note: g?.note ?? d.preflop.situation,
+        tags: { facingBet: (d.preflop.price ?? 0) > 0, heroPos: s.positions[HERO], actionType: ev.type, preflopKind: d.preflop.kind },
+      });
       continue;
     }
     try {
@@ -286,6 +295,15 @@ async function reviewHand() {
         equity: analysis.heroEquity,
         best: analysis.best.label,
         note: analysis.summary,
+        tags: {
+          facingBet: d.spot!.facingBet !== null,
+          bucket: analysis.hero.bucket,
+          heroPos: s.positions[HERO],
+          villainArchetype: s.bots[d.spot!.villains.length === 1 ? Object.keys(s.bots).map(Number).find((i) => s.positions[i] === d.spot!.villains[0]!.seat) ?? -1 : -1]?.archetype,
+          chosenFraction: ev.type === 'bet' || ev.type === 'raise' ? ev.amount / Math.max(1, ev.potBefore) : null,
+          bestFraction: analysis.best.fraction,
+          actionType: ev.type,
+        },
       });
     } catch (e) {
       decisions.push({ street: d.street, action, grade: null, evLost: null, equity: null, best: null, note: `Couldn't analyse: ${(e as Error).message}` });

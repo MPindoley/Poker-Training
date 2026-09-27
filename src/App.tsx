@@ -24,6 +24,9 @@ import { ProfileEditorScreen } from './screens/exploit/ProfileEditorScreen';
 import { ExploitDrillScreen } from './screens/exploit/ExploitDrillScreen';
 import { TableScreen } from './screens/play/TableScreen';
 import { SessionSummaryScreen } from './screens/play/SessionSummaryScreen';
+import { HandLoggerScreen } from './screens/review/HandLoggerScreen';
+import { LoggedHandScreen } from './screens/review/LoggedHandScreen';
+import { SessionEditorScreen } from './screens/review/SessionEditorScreen';
 
 /** Full-screen routes (drills, the table) hide the tab bar so nothing covers the controls. */
 const IMMERSIVE = [/^\/train\/[^/]+\/play/, /^\/play\/table/];
@@ -65,6 +68,10 @@ export default function App() {
                 <Route path="/play/table" element={<TableScreen />} />
                 <Route path="/play/summary" element={<SessionSummaryScreen />} />
                 <Route path="/review" element={<ReviewScreen />} />
+                <Route path="/review/log" element={<HandLoggerScreen />} />
+                <Route path="/review/hand/:id" element={<LoggedHandScreen />} />
+                <Route path="/review/session/new" element={<SessionEditorScreen />} />
+                <Route path="/review/session/:id" element={<SessionEditorScreen />} />
                 <Route path="/learn" element={<LearnScreen />} />
                 <Route path="/styleguide" element={<StyleguideScreen />} />
                 <Route path="/debug/equity" element={<DebugEquityScreen />} />

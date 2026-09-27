@@ -27,7 +27,8 @@ export interface ReplayInput {
   model: VillainModel;
 }
 
-function preflopRanges(chart: Chart, i: ReplayInput): { hero: Range; villain: Range; heroAggressor: boolean } {
+/** Hero and villain preflop ranges for a two-player preflop line, from the charts. */
+export function preflopLineRanges(chart: Chart, i: Pick<ReplayInput, 'heroSeat' | 'villainSeat' | 'preflop'>): { hero: Range; villain: Range; heroAggressor: boolean } {
   const any = parseRange('random');
   const or = (r: Range | undefined) => r ?? any;
   switch (i.preflop) {
@@ -55,7 +56,7 @@ export function buildReplaySpot(chart: Chart, input: ReplayInput, theme?: Theme)
   if (board.length < 3 || board.length > 5) throw new Error('Enter a flop, turn or river board');
   if (new Set([...hero, ...board]).size !== hero.length + board.length) throw new Error('A card appears twice');
   const street = streetOf(board);
-  const pre = preflopRanges(chart, input);
+  const pre = preflopLineRanges(chart, input);
   let heroRange = pre.hero;
   let villainRange = pre.villain;
   const history: HistoryLine[] = [{ street: 'preflop', text: `${input.preflop.replace('-', ' ')} (${input.heroSeat} vs ${input.villainSeat})` }];
