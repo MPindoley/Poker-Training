@@ -66,6 +66,6 @@ export function analyzeInWorker(spot: Spot, options?: AnalyzeOptions): Promise<S
   });
 }
 
-export function pushChartInWorker(stack: number, callPercent: number): Promise<Record<string, ShoveResult>> {
-  return run<Record<string, ShoveResult>>({ id: nextId++, kind: 'push', stack, callPercent });
+export function pushChartInWorker(stack: number, callFraction: number): Promise<Record<string, ShoveResult>> {
+  return run<Record<string, ShoveResult>>({ id: nextId++, kind: 'push', stack, callFraction });
 }

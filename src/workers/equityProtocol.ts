@@ -50,7 +50,7 @@ export interface PushJob {
   id: number;
   kind: 'push';
   stack: number;
-  callPercent: number;
+  callFraction: number;
 }
 
 export type EngineJob = EquityJob | AnalyzeJob | LoggedJob | PushJob;
@@ -70,7 +70,7 @@ export function handleEquityJob(job: EquityJob): EquityReply {
 export function handleEngineJob(job: EngineJob): EngineReply {
   if (job.kind === 'push') {
     try {
-      return { id: job.id, ok: true, result: pushChart(job.stack, job.callPercent) };
+      return { id: job.id, ok: true, result: pushChart(job.stack, job.callFraction) };
     } catch (e) {
       return { id: job.id, ok: false, error: e instanceof Error ? e.message : String(e) };
     }

@@ -25,7 +25,7 @@ export function ChipGroup<T extends string>({
               role={multi ? 'checkbox' : 'radio'}
               aria-checked={on}
               onClick={() => onChange(multi ? (on ? value.filter((v) => v !== o.value) : [...value, o.value]) : [o.value])}
-              className={`min-h-11 rounded-xl border-2 border-ink px-3 font-display text-sm ${on ? 'bg-gold-500 text-ink shadow-chunky-sm' : 'bg-ink/40 text-cream'}`}
+              className={`min-h-11 min-w-11 rounded-xl border-2 border-ink px-3 font-display text-sm ${on ? 'bg-gold-500 text-ink shadow-chunky-sm' : 'bg-ink/40 text-cream'}`}
             >
               {o.label}
             </button>

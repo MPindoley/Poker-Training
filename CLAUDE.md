@@ -55,6 +55,8 @@ Reuse these; extend them rather than restyling ad hoc. All are shown on the `/st
   (`runEquity`) so it runs in a Web Worker.
 - `outs` (clean/dirty outs vs a range), `texture` (board classifier + `rangeAdvantage`),
   `odds` (pot odds, MDF, bluff breakeven, EV, implied odds, SPR).
+- `preflop/solverImport` — JSON/CSV solver output → chart overrides (`/train/preflop/import`); imported
+  spots replace the built-in charts everywhere (drills, coach, Play).
 
 ## Progression (`src/engine/meta`, pure)
 - `skills` (5 radar areas; each drill kind maps to one; smoothed accuracy), `xp` (answer XP × difficulty,
@@ -92,11 +94,14 @@ Reuse these; extend them rather than restyling ad hoc. All are shown on the `/st
 ## Commands
 - `npm run dev` — dev server on the LAN (port 5173) for testing on a phone.
 - `npm run build` / `npm run preview` — production build with service worker (port 4173).
-- `npm test` — Vitest. `npm run typecheck` — TypeScript.
+- `npm test` — Vitest (includes a 50-spot exact-vs-Monte-Carlo equity cross-check). `npm run test:coverage` —
+  engine coverage. `npm run typecheck` — TypeScript.
+- Deploy: see `DEPLOY.md` (Vercel, `vercel.json` has SPA rewrites; iPhone Add to Home Screen steps).
 - `node scripts/make-icons.mjs` — regenerate PNG app icons from `public/icon-source.svg`
   (needs Chromium; set `CHROMIUM=/path/to/chromium`).
 
 ## Gotchas
 - Don't set `initial={false}` on the route-level `AnimatePresence` in `App.tsx`: it propagates to every
   descendant and silently disables all mount animations (confetti, dealt cards, toasts).
+- Tap targets must be ≥ 44px (`GameButton` sm is 44px tall; `ChipGroup` chips have `min-w-11`).
 - Service workers only register on `localhost` or HTTPS, so offline mode can't be tested over plain LAN HTTP.

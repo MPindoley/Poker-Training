@@ -16,7 +16,7 @@ const COLORS: Record<ButtonColor, string> = {
 };
 
 const SIZES: Record<ButtonSize, string> = {
-  sm: 'h-10 px-4 text-base rounded-xl gap-1.5',
+  sm: 'h-11 px-4 text-base rounded-xl gap-1.5',
   md: 'h-13 px-5 text-xl rounded-2xl gap-2',
   lg: 'h-16 px-6 text-2xl rounded-[1.25rem] gap-2.5',
 };

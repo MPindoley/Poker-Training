@@ -205,14 +205,14 @@ export const UNIT8: Unit = {
           kind: 'p',
           text: () => {
             const e = icmEquity([6000, 3000, 1000], [50, 30, 20]);
-            return `Three players with 6,000 / 3,000 / 1,000 chips and prizes 50/30/20: the chip leader has 60% of the chips but ${pct(e[0]! / 100, 1)} of the money; the short stack has 10% of the chips but ${pct(e[2]! / 100, 1)}.`;
+            return `Three players with 6,000 / 3,000 / 1,000 chips and prizes 50/30/20: the chip leader has ${pct(6000 / 10000, 0)} of the chips but ${pct(e[0]! / 100, 1)} of the money; the short stack has ${pct(1000 / 10000, 0)} of the chips but ${pct(e[2]! / 100, 1)}.`;
           },
         },
         { kind: 'example', example: 'icm' },
         { kind: 'p', text: 'Consequence: losing chips hurts more than winning the same chips helps, so you need extra equity to call all-ins near the money.' },
       ],
       quiz: [
-        { prompt: 'Under ICM, the chip leader’s money share is…', choices: ['Less than their chip share', 'More than their chip share'], answer: 0, why: () => `e.g. ${pct(icmEquity([6000, 3000, 1000], [50, 30, 20])[0]! / 100)} of the prize pool with 60% of the chips.` },
+        { prompt: 'Under ICM, the chip leader’s money share is…', choices: ['Less than their chip share', 'More than their chip share'], answer: 0, why: () => `e.g. ${pct(icmEquity([6000, 3000, 1000], [50, 30, 20])[0]! / 100)} of the prize pool with ${pct(6000 / 10000, 0)} of the chips.` },
         { prompt: 'Near the money, calling all-ins needs…', choices: ['More equity than chip odds suggest', 'Less equity'], answer: 0, why: 'Busting costs more than doubling up gains.' },
         { prompt: 'ICM ignores…', choices: ['Skill and position', 'Stack sizes'], answer: 0, why: 'It only uses stacks and payouts.' },
       ],

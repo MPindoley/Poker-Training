@@ -85,6 +85,50 @@ describe('range tracker', () => {
   });
 });
 
+describe('range tracker: calls and checks', () => {
+  const play = (bots: Record<number, BotProfile>, actions: Parameters<typeof applyAction>[1][]) => {
+    let s = startHand([{ name: 'A', stack: 100, hero: !bots[0] }, { name: 'B', stack: 100, hero: !bots[1] }], 1, { sb: 0.5, bb: 1 }, createRng(11));
+    let ranges = initialRanges(s);
+    const sizes: number[] = [countCombos(ranges[0]!), countCombos(ranges[1]!)];
+    const history: number[][] = [];
+    for (const a of actions) {
+      const next = applyAction(s, a);
+      ranges = updateRanges(ranges, s, next.log[next.log.length - 1]!, bots);
+      s = next;
+      history.push([countCombos(ranges[0]!), countCombos(ranges[1]!)]);
+    }
+    return { sizes, history };
+  };
+
+  it('a limp, a call of a raise, a flop call and a turn check each narrow the range', () => {
+    // Station on the button (seat 1) limps, hero raises, station calls, then flop/turn.
+    const bots = { 1: makeBot('Station', ARCHETYPES.station.stats, 'station') };
+    const { sizes, history } = play(bots, [
+      { type: 'call' }, // limp: seat 1's first-in calling range
+      { type: 'raise', to: 4 },
+      { type: 'call' }, // calls a raise: top VPIP minus top 3-bet range
+      { type: 'bet', to: 4 }, // flop: hero (BB) bets
+      { type: 'call' }, // station continues
+      { type: 'check' }, // turn: hero checks
+      { type: 'check' }, // station checks back
+    ]);
+    const station = [sizes[1]!, ...history.map((h) => h[1]!)];
+    expect(station[1]!).toBeLessThan(1326); // limp
+    expect(station[3]!).toBeLessThan(station[1]! + 1e-9); // call vs raise ⊆ tighter than limp range size
+    expect(station[3]!).toBeGreaterThan(0);
+    expect(station[5]!).toBeLessThanOrEqual(station[3]! + 1e-9); // flop call
+    expect(station[7]!).toBeLessThanOrEqual(station[5]! + 1e-9); // turn check
+    expect(station[7]!).toBeGreaterThan(0);
+  });
+
+  it('a big blind check after a limp removes its raising range', () => {
+    const bots = { 0: makeBot('TAG', ARCHETYPES.tag.stats, 'tag') };
+    const { sizes, history } = play(bots, [{ type: 'call' }, { type: 'check' }]);
+    expect(history[1]![0]!).toBeLessThan(sizes[0]!);
+    expect(history[1]![0]!).toBeGreaterThan(1326 * 0.5);
+  });
+});
+
 describe('coach', () => {
   it('gives chart advice for an open and grades the action', () => {
     let s = startHand(Array.from({ length: 6 }, (_, i) => ({ name: `P${i}`, stack: 100, hero: i === 3 })), 0, { sb: 0.5, bb: 1 }, createRng(6));

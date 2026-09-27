@@ -126,6 +126,18 @@ export function PreflopTrainerScreen() {
             <span className="block text-xs font-bold text-white/85">View and edit every chart</span>
           </span>
         </motion.button>
+        <motion.button
+          type="button"
+          whileTap={{ scaleX: 1.04, scaleY: 0.92 }}
+          onClick={() => navigate('/train/preflop/import')}
+          className="gloss col-span-2 flex min-h-16 items-center gap-3 rounded-3xl border-[3px] border-ink bg-gradient-to-b from-[#6fb2ff] to-sapphire-dark p-3 text-left text-white shadow-chunky"
+        >
+          <span className="grid h-10 w-10 place-items-center rounded-xl border-[3px] border-ink bg-ink/30 font-display text-lg">⇪</span>
+          <span>
+            <span className="text-outline-sm block font-display text-lg leading-tight">Import Solver Output</span>
+            <span className="block text-xs font-bold text-white/85">JSON or CSV strategies replace the built-in charts</span>
+          </span>
+        </motion.button>
       </div>
 
       <Panel tone="night" title="Weak spots">

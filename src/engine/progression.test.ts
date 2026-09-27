@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { levelFromXp, nextStreak, xpToReachLevel } from './progression';
+import { dayKey, levelFromXp, nextStreak, xpToReachLevel } from './progression';
 
 describe('levels', () => {
   it('starts at level 1 with 0 XP', () => {
@@ -29,5 +29,17 @@ describe('streaks', () => {
 
   it('crosses month boundaries', () => {
     expect(nextStreak('2026-09-30', '2026-10-01', 2)).toBe(3);
+  });
+});
+
+describe('dayKey', () => {
+  it('formats local dates with zero padding', () => {
+    expect(dayKey(new Date(2026, 0, 5))).toBe('2026-01-05');
+    expect(dayKey(new Date(2026, 11, 31, 23, 59))).toBe('2026-12-31');
+  });
+  it('streaks survive month and year boundaries', () => {
+    expect(nextStreak('2025-12-31', '2026-01-01', 9)).toBe(10);
+    expect(nextStreak('2026-02-28', '2026-03-01', 2)).toBe(3); // 2026 is not a leap year
+    expect(nextStreak('2024-02-28', '2024-03-01', 2)).toBe(1); // 2024 is: Feb 29 was skipped
   });
 });

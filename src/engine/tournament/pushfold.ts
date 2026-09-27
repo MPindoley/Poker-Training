@@ -36,7 +36,8 @@ export function shoveGain(label: string, stack: number, callRange: Range, iterat
 }
 
 /** Shove/fold decision for all 169 hands. */
-export function pushChart(stack: number, callPercent: number, iterations = 800): Record<string, ShoveResult> {
-  const call = topRange(callPercent);
+/** `callFraction`: the BB calls with the top fraction of hands (0.25 = top 25%). */
+export function pushChart(stack: number, callFraction: number, iterations = 800): Record<string, ShoveResult> {
+  const call = topRange(callFraction);
   return Object.fromEntries(HAND_GRID.flat().map((h, i) => [h.label, shoveGain(h.label, stack, call, iterations, 100 + i)]));
 }

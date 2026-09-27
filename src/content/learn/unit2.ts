@@ -49,9 +49,9 @@ export const UNIT2: Unit = {
         },
         {
           prompt: 'Rule of 2: 9 outs on the turn is about…',
-          choices: ['18%', '36%', '9%'],
+          choices: [() => `${9 * 2}%`, () => `${9 * 4}%`, () => `${9}%`],
           answer: 0,
-          why: () => `9 × 2 = 18%; exact is 9/46 = ${pct(fdTurn())}.`,
+          why: () => `9 × 2 = ${9 * 2}%; exact is 9/46 = ${pct(fdTurn())}.`,
         },
       ],
       drill: { route: '/train/math/play?kind=math.rule24&d=bronze', label: 'Rule of 2 & 4' },

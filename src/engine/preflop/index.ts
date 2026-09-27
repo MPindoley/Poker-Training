@@ -5,3 +5,4 @@ export * from './paint';
 export * from './reasons';
 export * from './drills';
 export * from './ranking';
+export * from './solverImport';

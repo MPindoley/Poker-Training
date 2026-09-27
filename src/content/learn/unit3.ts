@@ -58,7 +58,7 @@ export const UNIT3: Unit = {
         { kind: 'p', text: () => `Why it matters: the bigger the open, the worse the price for callers. At 2.5bb the big blind needs ${pct(bigBlindPrice(2.5))} to call; at 4bb it needs ${pct(bigBlindPrice(4))}.` },
       ],
       quiz: [
-        { prompt: 'Two players limped. Casino rule of thumb?', choices: ['3bb + 1bb per limper = 5bb', '2.5bb', '3bb'], answer: 0, why: () => sizingRule('casino', 'BTN', 2).reason },
+        { prompt: 'Two players limped. Casino rule of thumb?', choices: [() => `3bb + 1bb per limper = ${sizingRule('casino', 'BTN', 2).best}bb`, '2.5bb', '3bb'], answer: 0, why: () => sizingRule('casino', 'BTN', 2).reason },
         { prompt: 'Against a table that calls too much you should open…', choices: ['Bigger', 'Smaller'], answer: 0, why: 'Their weak calls pay more, and fewer of them come along.' },
         { prompt: 'A bigger open gives the big blind…', choices: ['A worse price', 'A better price'], answer: 0, why: () => `${pct(bigBlindPrice(2.5))} at 2.5bb vs ${pct(bigBlindPrice(4))} at 4bb.` },
       ],
@@ -115,7 +115,7 @@ export const UNIT3: Unit = {
       ],
       quiz: [
         { prompt: 'One player limps and you have AJo on the button. Usually…', choices: ['Raise to isolate', 'Limp behind', 'Fold'], answer: 0, why: 'AJo beats a limping range and plays well heads-up in position.' },
-        { prompt: 'Iso-raise size with one limper (casino)?', choices: ['About 4bb', '2bb', '10bb'], answer: 0, why: () => sizingRule('casino', 'CO', 1).reason },
+        { prompt: 'Iso-raise size with one limper (casino)?', choices: [() => `About ${sizingRule('casino', 'CO', 1).best}bb`, '2bb', '10bb'], answer: 0, why: () => sizingRule('casino', 'CO', 1).reason },
         { prompt: 'When is over-limping a small pair reasonable?', choices: ['Several limpers and deep stacks', 'Heads-up with short stacks'], answer: 0, why: 'You need a big pot to pay you when you hit a set.' },
       ],
       drill: { route: '/train/preflop/play?kind=preflop.sizing&d=silver', label: 'Sizing drill' },

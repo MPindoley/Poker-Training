@@ -2,7 +2,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { levelFromXp, skillRadar, type AchievementSnapshot, type AreaScore, type SkillArea } from '../engine';
 import { ALL_LESSONS } from '../content/learn';
-import { useCharts } from './chartStore';
+import { useChartStore, useCharts } from './chartStore';
+import { useProfiles } from './profilesStore';
+import { useSettings } from './settingsStore';
 import { useDrillStats } from './drillStatsStore';
 import { useHandLog } from './handLogStore';
 import { useLearn } from './learnStore';
@@ -17,11 +19,21 @@ const PERSISTED: Persisted[] = [useProgress, useDrillStats, useRewards, useLearn
 
 /** True once every progress-related store has loaded from IndexedDB. */
 export function useProgressHydrated(): boolean {
-  const all = () => PERSISTED.every((s) => s.persist.hasHydrated());
+  return useHydrated(PERSISTED);
+}
+
+const APP_STORES: Persisted[] = [...PERSISTED, useSettings, useChartStore, useProfiles];
+/** True once every saved store has loaded (the app shows a splash until then). */
+export function useAppHydrated(): boolean {
+  return useHydrated(APP_STORES);
+}
+
+function useHydrated(stores: Persisted[]): boolean {
+  const all = () => stores.every((s) => s.persist.hasHydrated());
   const [ready, setReady] = useState(all);
   useEffect(() => {
     if (ready) return;
-    const unsubs = PERSISTED.map((s) => s.persist.onFinishHydration(() => setReady(all())));
+    const unsubs = stores.map((s) => s.persist.onFinishHydration(() => setReady(all())));
     setReady(all());
     return () => unsubs.forEach((u) => u());
   }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
