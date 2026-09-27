@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="felt" cx="50%" cy="40%" r="70%">
+      <stop offset="0" stop-color="#2fae6a"/>
+      <stop offset="1" stop-color="#0b4d2c"/>
+    </radialGradient>
+    <linearGradient id="chip" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff5a4e"/>
+      <stop offset="1" stop-color="#c81f2a"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe27a"/>
+      <stop offset="1" stop-color="#e9a519"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#felt)"/>
+  <g transform="translate(256 272)">
+    <circle r="170" fill="#1b1230" transform="translate(0 14)"/>
+    <circle r="170" fill="url(#chip)" stroke="#1b1230" stroke-width="16"/>
+    <g fill="#fff6e0">
+      <rect x="-22" y="-162" width="44" height="46" rx="8"/>
+      <rect x="-22" y="-162" width="44" height="46" rx="8" transform="rotate(60)"/>
+      <rect x="-22" y="-162" width="44" height="46" rx="8" transform="rotate(120)"/>
+      <rect x="-22" y="-162" width="44" height="46" rx="8" transform="rotate(180)"/>
+      <rect x="-22" y="-162" width="44" height="46" rx="8" transform="rotate(240)"/>
+      <rect x="-22" y="-162" width="44" height="46" rx="8" transform="rotate(300)"/>
+    </g>
+    <circle r="104" fill="#fff6e0" stroke="#1b1230" stroke-width="12"/>
+    <!-- mortarboard -->
+    <path d="M-78 -18 L0 -54 L78 -18 L0 18 Z" fill="#1b1230"/>
+    <path d="M-44 0 L-44 34 C-44 52 44 52 44 34 L44 0 L0 20 Z" fill="#1b1230"/>
+    <path d="M62 -10 L62 34" stroke="url(#gold)" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="62" cy="42" r="12" fill="url(#gold)" stroke="#1b1230" stroke-width="4"/>
+  </g>
+</svg>

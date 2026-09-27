@@ -1,0 +1,137 @@
+@import 'tailwindcss';
+@import '@fontsource/lilita-one/latin-400.css';
+@import '@fontsource-variable/nunito/wght.css';
+
+@theme {
+  --font-display: 'Lilita One', 'Arial Rounded MT Bold', system-ui, sans-serif;
+  --font-body: 'Nunito Variable', system-ui, -apple-system, sans-serif;
+
+  /* Outline / shadow ink used on every chunky surface */
+  --color-ink: #1b1230;
+
+  --color-felt-950: #06281a;
+  --color-felt-900: #0b3d26;
+  --color-felt-800: #0d4a2e;
+  --color-felt-700: #0f5f37;
+  --color-felt-500: #1e8a4f;
+  --color-felt-300: #45c47e;
+
+  --color-wood-900: #3d1f0f;
+  --color-wood-700: #6b3a1e;
+  --color-wood-500: #a0612f;
+  --color-wood-300: #d59256;
+
+  --color-gold-700: #b87908;
+  --color-gold-500: #f5b820;
+  --color-gold-300: #ffe27a;
+
+  --color-cream: #fff6e0;
+  --color-cream-dark: #f1dfb8;
+
+  --color-ruby: #e5383b;
+  --color-ruby-dark: #a8161f;
+  --color-sapphire: #2f7fe8;
+  --color-sapphire-dark: #164fa6;
+  --color-emerald: #22b35e;
+  --color-emerald-dark: #127339;
+  --color-grape: #8b4ae8;
+  --color-grape-dark: #5623a6;
+
+  /* Suit colours (4-colour deck). 2-colour mode maps diamonds->heart red, clubs->spade black. */
+  --color-suit-spade: #1f2433;
+  --color-suit-heart: #e0303b;
+  --color-suit-diamond: #1f7ae0;
+  --color-suit-club: #1f9d4a;
+
+  --shadow-chunky: 0 5px 0 0 var(--color-ink);
+  --shadow-chunky-sm: 0 3px 0 0 var(--color-ink);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    font-family: var(--font-body);
+    color: var(--color-cream);
+    background-color: var(--color-felt-900);
+    background-image:
+      radial-gradient(ellipse at 50% 0%, rgb(69 196 126 / 0.35), transparent 60%),
+      radial-gradient(rgb(0 0 0 / 0.08) 1px, transparent 1px);
+    background-size: 100% 100%, 4px 4px;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  button {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  /* Heavy display text with a dark outline, like a game title. */
+  .text-outline {
+    -webkit-text-stroke: 1.5px var(--color-ink);
+    paint-order: stroke fill;
+    text-shadow: 0 3px 0 var(--color-ink);
+  }
+  .text-outline-sm {
+    -webkit-text-stroke: 1px var(--color-ink);
+    paint-order: stroke fill;
+    text-shadow: 0 2px 0 var(--color-ink);
+  }
+  /* Soft glossy highlight across the top of a surface. */
+  .gloss {
+    position: relative;
+    isolation: isolate;
+  }
+  .gloss::before {
+    content: '';
+    position: absolute;
+    inset: 3px 6px auto 6px;
+    height: min(42%, 1.4rem);
+    border-radius: 9999px;
+    background: linear-gradient(to bottom, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.08));
+    pointer-events: none;
+    z-index: -1;
+  }
+  .wood-grain {
+    background-color: var(--color-wood-500);
+    background-image:
+      repeating-linear-gradient(
+        100deg,
+        rgb(255 255 255 / 0.06) 0 2px,
+        transparent 2px 9px,
+        rgb(0 0 0 / 0.07) 9px 11px,
+        transparent 11px 19px
+      ),
+      linear-gradient(to bottom, var(--color-wood-300), var(--color-wood-700));
+  }
+  .felt-surface {
+    background-color: var(--color-felt-700);
+    background-image:
+      radial-gradient(ellipse at 50% 30%, rgb(255 255 255 / 0.14), transparent 70%),
+      radial-gradient(rgb(0 0 0 / 0.1) 1px, transparent 1px);
+    background-size: 100% 100%, 3px 3px;
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+@keyframes shine {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
