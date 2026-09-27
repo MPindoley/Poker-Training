@@ -20,3 +20,7 @@ npm run build && npm run preview   # production build with offline support
 Offline mode and the service worker only work on `localhost` or over HTTPS. To install it properly
 (home screen + offline), deploy the `dist/` folder to any static HTTPS host (Netlify, Vercel, GitHub Pages,
 Cloudflare Pages), open it in Safari, then Share → **Add to Home Screen**.
+
+## Deploy
+
+See [DEPLOY.md](DEPLOY.md) for free hosting on Vercel and installing to an iPhone home screen.

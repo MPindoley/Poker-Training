@@ -1,0 +1,20 @@
+{
+  "id": "cash-9max-100bb",
+  "name": "9-handed cash, 100bb",
+  "description": "Close approximation of widely published solver-informed full-ring charts for 100bb cash games. Facing-open and facing-3-bet ranges reuse the 6-max charts, mapping early seats onto UTG. Not solver output — edit anything in the Range Editor.",
+  "stackBb": 100,
+  "seats": ["UTG", "UTG+1", "MP", "LJ", "HJ", "CO", "BTN", "SB", "BB"],
+  "openSizeBb": { "default": 2.5, "SB": 3 },
+  "rfi": {
+    "UTG": "66+, A9s+, A5s, KTs+, QTs+, JTs, AJo+, KQo",
+    "UTG+1": "55+, A8s+, A5s-A4s, KTs+, QTs+, JTs, T9s, AJo+, KQo",
+    "MP": "44+, A7s+, A5s-A3s, K9s+, Q9s+, J9s+, T9s, 98s, ATo+, KJo+",
+    "LJ": "33+, A2s+, K8s+, Q9s+, J9s+, T8s+, 98s, 87s, ATo+, KJo+, QJo",
+    "HJ": "22+, A2s+, K7s+, Q8s+, J8s+, T8s+, 97s+, 87s, 76s, ATo+, KTo+, QTo+, JTo",
+    "CO": "22+, A2s+, K4s+, Q6s+, J7s+, T7s+, 96s+, 86s+, 75s+, 65s, 54s, A8o+, A5o, KTo+, QTo+, JTo",
+    "BTN": "22+, A2s+, K2s+, Q2s+, J4s+, T6s+, 95s+, 85s+, 74s+, 64s+, 53s+, 43s, A2o+, K8o+, Q9o+, J9o+, T8o+, 98o, 87o",
+    "SB": "22+, A2s+, K2s+, Q3s+, J5s+, T6s+, 95s+, 85s+, 74s+, 64s+, 53s+, 43s, A2o+, K7o+, Q9o+, J9o+, T8o+, 98o"
+  },
+  "inherit": "cash-6max-100bb",
+  "seatAlias": { "UTG+1": "UTG", "MP": "UTG", "LJ": "UTG" }
+}

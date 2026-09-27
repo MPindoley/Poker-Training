@@ -14,6 +14,7 @@ import {
   Panel,
   ProgressBar,
   RangeGrid,
+  Toggle,
   XPBadge,
 } from '../components/ui';
 
@@ -71,6 +72,12 @@ export function StyleguideScreen() {
         <GameButton color="gold" size="lg" fullWidth>
           Deal Me In
         </GameButton>
+      </Section>
+
+      <Section name="Toggle">
+        <Panel tone="night">
+          <ToggleDemo />
+        </Panel>
       </Section>
 
       <Section name="Panel">
@@ -214,4 +221,9 @@ export function StyleguideScreen() {
       </Section>
     </div>
   );
+}
+
+function ToggleDemo() {
+  const [on, setOn] = useState(true);
+  return <Toggle label="Sound effects" hint="Chunky switch, 44px tap target" on={on} onChange={setOn} />;
 }

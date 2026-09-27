@@ -1,8 +1,11 @@
 import { motion } from 'framer-motion';
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { haptic } from '../../lib/haptics';
+import { sfx } from '../../lib/sound';
 import { GRADE_LABEL } from '../../engine';
 import type { ToastTone } from '../../state/toastStore';
 import { Celebration } from './Celebration';
+import { RichText } from './RichText';
 
 const TONE: Record<ToastTone, { bar: string; badge: string; label: string; icon: string }> = {
   best: { bar: 'from-felt-300 to-emerald-dark', badge: 'bg-gold-500 text-ink', label: GRADE_LABEL.best, icon: '★' },
@@ -16,7 +19,7 @@ export interface FeedbackBannerProps {
   title: ReactNode;
   /** The WHY. Every trainer answer must explain itself. */
   children?: ReactNode;
-  /** Lines of worked math, shown in a monospace box. */
+  /** Lines of worked math, shown in a dark box. {Ah} tokens render as mini cards. */
   math?: string[];
   /** Play confetti/coins (best) or shake (mistake) on mount. Default true. */
   animate?: boolean;
@@ -27,6 +30,17 @@ export interface FeedbackBannerProps {
 export function FeedbackBanner({ tone, title, children, math, animate = true, className = '' }: FeedbackBannerProps) {
   const t = TONE[tone];
   const shake = animate && tone === 'mistake';
+  useEffect(() => {
+    if (!animate) return;
+    if (tone === 'best') {
+      sfx('correct');
+      haptic('success');
+    } else if (tone === 'acceptable') sfx('acceptable');
+    else if (tone === 'mistake') {
+      sfx('wrong');
+      haptic('error');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <motion.div
       initial={{ y: 30, opacity: 0, scale: 0.9 }}
@@ -48,9 +62,13 @@ export function FeedbackBanner({ tone, title, children, math, animate = true, cl
         <div className="relative mt-2 rounded-2xl border-2 border-ink bg-cream p-3 text-sm font-semibold text-ink">
           {children}
           {math && (
-            <pre className="mt-2 whitespace-pre-wrap rounded-lg bg-ink px-2.5 py-1.5 font-mono text-[12px] leading-relaxed text-gold-300">
-              {math.join('\n')}
-            </pre>
+            <div className="mt-2 space-y-1 rounded-lg bg-ink px-2.5 py-2 font-mono text-[12px] leading-relaxed text-gold-300">
+              {math.map((line, i) => (
+                <div key={i}>
+                  <RichText text={line} />
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

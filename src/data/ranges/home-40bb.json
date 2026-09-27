@@ -1,0 +1,39 @@
+{
+  "id": "home-40bb",
+  "name": "Home game, ~40bb (loose-passive)",
+  "description": "Adjusted for a loose-passive home game about 40bb deep: slightly tighter opens (pots go multi-way), bigger open sizes, fewer light 3-bet bluffs and more value 3-bets. 4-bets are effectively all-ins. An approximation — edit anything in the Range Editor.",
+  "stackBb": 40,
+  "seats": ["UTG", "UTG+1", "MP", "LJ", "HJ", "CO", "BTN", "SB", "BB"],
+  "openSizeBb": { "default": 4, "SB": 4 },
+  "rfi": {
+    "UTG": "77+, ATs+, A5s, KTs+, QJs, AJo+, KQo",
+    "UTG+1": "66+, A9s+, A5s, KTs+, QTs+, JTs, AJo+, KQo",
+    "MP": "55+, A8s+, A5s-A4s, KTs+, QTs+, JTs, T9s, ATo+, KJo+",
+    "LJ": "44+, A7s+, A5s-A3s, K9s+, Q9s+, J9s+, T9s, 98s, ATo+, KJo+",
+    "HJ": "33+, A2s+, K8s+, Q9s+, J9s+, T8s+, 98s, 87s, ATo+, KJo+, QJo",
+    "CO": "22+, A2s+, K7s+, Q8s+, J8s+, T8s+, 97s+, 87s, 76s, 65s, A9o+, KTo+, QTo+, JTo",
+    "BTN": "22+, A2s+, K5s+, Q7s+, J7s+, T7s+, 96s+, 86s+, 75s+, 64s+, 54s, A7o+, A5o, K9o+, Q9o+, J9o+, T9o",
+    "SB": "22+, A2s+, K6s+, Q8s+, J8s+, T8s+, 97s+, 86s+, 76s, 65s, A8o+, KTo+, QTo+, JTo"
+  },
+  "seatAlias": { "UTG": "EP", "UTG+1": "EP", "MP": "EP", "LJ": "EP", "HJ": "LP", "CO": "LP", "BTN": "LP" },
+  "vsOpen": {
+    "LP": {
+      "EP": { "3bet": "QQ+, AKs, AKo", "call": "66-JJ, AJs-AQs, KQs" },
+      "LP": { "3bet": "TT+, AQs+, AKo", "call": "22-99, ATs-AJs, KJs+, QJs, JTs, T9s, 98s, AJo-AQo, KQo" }
+    },
+    "SB": {
+      "EP": { "3bet": "TT+, AQs+, AKo", "call": "" },
+      "LP": { "3bet": "99+, AJs+, KQs, AQo+", "call": "" }
+    },
+    "BB": {
+      "EP": { "3bet": "TT+, AQs+, AKo", "call": "22-99, A2s-AJs, KTs+, QTs+, JTs, T9s, 98s, 87s, 76s, AJo-AQo, KQo" },
+      "LP": { "3bet": "99+, AJs+, AQo+, KQs", "call": "22-88, A2s-ATs, K8s-KJs, Q9s+, J9s+, T8s+, 97s+, 86s+, 75s+, 65s, 54s, A9o-AJo, KTo+, QTo+, JTo" },
+      "SB": { "3bet": "88+, ATs+, AJo+, KQs", "call": "22-77, A2s-A9s, K5s-KJs, Q7s+, J8s+, T8s+, 97s+, 86s+, 75s+, 64s+, 54s, A5o-ATo, K9o+, Q9o+, J9o+, T9o" }
+    }
+  },
+  "vs3bet": {
+    "EP": { "4bet": "JJ+, AKs, AKo, AQs", "call": "99-TT, AJs, KQs" },
+    "LP": { "4bet": "TT+, AQs+, AKo, AQo@50", "call": "77-99, ATs-AJs, KQs, AJo@50" },
+    "SB": { "4bet": "TT+, AQs+, AKo, AQo@50", "call": "77-99, ATs-AJs, KQs" }
+  }
+}

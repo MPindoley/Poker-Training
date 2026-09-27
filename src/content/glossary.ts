@@ -1,0 +1,82 @@
+/** Searchable glossary. Look-alike terms carry an explicit “vs” note so they’re never confused. */
+import { bluffBreakeven, classCombos, hitProbability, minimumDefenseFrequency, requiredEquity, stackToPotRatio } from '../engine';
+import type { Dyn } from './learn/types';
+import { pct } from './learn/fmt';
+
+export interface GlossaryEntry {
+  term: string;
+  definition: string;
+  example?: Dyn;
+  /** How it differs from a similar term. */
+  vs?: Dyn;
+  related?: string[];
+}
+
+export const GLOSSARY: GlossaryEntry[] = [
+  { term: 'Action', definition: 'Any bet, raise, call, check or fold; also “whose turn it is”.' },
+  { term: 'All-in', definition: 'Putting your whole stack in the pot.', related: ['Side pot'] },
+  { term: 'Ante', definition: 'A small forced bet from every player, common in tournaments.' },
+  { term: 'Backdoor draw', definition: 'A draw that needs two more cards, e.g. three to a flush on the flop.', example: () => `A backdoor flush (both turn and river of your suit) hits ${pct(hitProbability(10, 47, 1) * (9 / 46))} of the time.`, vs: 'vs Runner-runner: “backdoor” names the draw before it hits; “runner-runner” describes it after both cards came.', related: ['Runner-runner'] },
+  { term: 'Bad beat', definition: 'Losing a hand where you were a big favourite when the money went in.' },
+  { term: 'Big blind (BB)', definition: 'The larger forced bet, posted two seats left of the button. Stakes and stacks are measured in big blinds.' },
+  { term: 'Blocker', definition: 'A card in your hand that makes certain villain hands impossible or less likely.', example: () => `Holding {Ah} on K-7-2, villain has ${classCombos('AK', 'AhQc Kd7s2c')} AK combos instead of ${classCombos('AK', 'Kd7s2c')}.`, related: ['Combo'] },
+  { term: 'Bluff', definition: 'A bet with a hand that wins mainly when your opponent folds.', example: () => `A pot-size bluff needs ${pct(bluffBreakeven(1, 1))} folds to break even.`, vs: 'vs Semi-bluff: a pure bluff has little chance to win at showdown; a semi-bluff has a draw.', related: ['Semi-bluff'] },
+  { term: 'Board', definition: 'The community cards: flop (3), turn (1) and river (1).' },
+  { term: 'Button (BTN)', definition: 'The dealer position; acts last after the flop.' },
+  { term: 'C-bet (continuation bet)', definition: 'A flop bet by the player who raised last preflop.', vs: 'vs Donk bet: a donk bet is a bet into the preflop aggressor by a player out of position.', related: ['Donk bet'] },
+  { term: 'Calling station', definition: 'A player who calls too much and rarely folds or raises.' },
+  { term: 'Check-raise', definition: 'Checking, then raising after an opponent bets.' },
+  { term: 'Combo', definition: 'One specific two-card holding, like {As}{Kd}.', example: () => `“AK” is ${classCombos('AK')} combos: ${classCombos('AKs')} suited and ${classCombos('AKo')} offsuit.` },
+  { term: 'Cutoff (CO)', definition: 'The seat right of the button.' },
+  { term: 'Dirty out', definition: 'An out that improves you but may also give your opponent a better hand.', vs: 'vs Clean out: a clean out wins every time it comes.' },
+  { term: 'Donk bet', definition: 'Leading into the preflop aggressor from out of position.', vs: 'vs C-bet: the c-bet comes from the preflop aggressor.' },
+  { term: 'Effective stack', definition: 'The smaller of the stacks involved — the most that can be won or lost.' },
+  { term: 'Equity', definition: 'Your share of the pot if all remaining cards were dealt.', vs: 'vs Expected value: equity is a share of the pot; EV is the average money a decision wins.', related: ['Expected value (EV)'] },
+  { term: 'Equity realization', definition: 'How much of your raw equity you actually win given the betting to come. Out of position you usually realize less.' },
+  { term: 'Expected value (EV)', definition: 'The average result of a decision over many repetitions.', vs: 'vs Equity: EV includes what you risk and win, not just your share of the pot.' },
+  { term: 'Flop', definition: 'The first three community cards.' },
+  { term: 'Fold equity', definition: 'The value a bet gains from the chance that opponents fold.' },
+  { term: 'Gutshot', definition: 'An inside straight draw with 4 outs, e.g. 9-8-6-5 needing a 7.', example: () => `Four outs on the flop hit by the river ${pct(hitProbability(4, 47, 2))} of the time.`, vs: 'vs Open-ended straight draw: an open-ender has 8 outs (either end).' },
+  { term: 'Hijack (HJ)', definition: 'Two seats right of the button.' },
+  { term: 'ICM', definition: 'Independent Chip Model: converts tournament chip stacks into shares of the prize pool.' },
+  { term: 'Implied odds', definition: 'Future money you expect to win when you hit, which can justify a call direct odds don’t.', vs: 'vs Reverse implied odds: money you lose later when you make a second-best hand.', related: ['Pot odds'] },
+  { term: 'Isolation raise', definition: 'Raising over a limper to play heads-up with them.' },
+  { term: 'Kicker', definition: 'An unpaired side card that breaks ties between equal hands.' },
+  { term: 'Limp', definition: 'Just calling the big blind preflop instead of raising.' },
+  { term: 'MDF (minimum defense frequency)', definition: 'The share of your range you must continue with so bluffs can’t profit automatically: pot / (pot + bet).', example: () => `Facing a half-pot bet, MDF is ${pct(minimumDefenseFrequency(1, 0.5))}.` },
+  { term: 'Nit', definition: 'A very tight player who plays few hands and folds to pressure.' },
+  { term: 'Nuts', definition: 'The best possible hand on the current board.' },
+  { term: 'Nut advantage', definition: 'Having more of the very strongest hands than your opponent on a board.', vs: 'vs Range advantage: range advantage is about your whole range’s equity, not just the top.' },
+  { term: 'Open-ended straight draw (OESD)', definition: 'Four in a row that can complete at either end: 8 outs.', example: () => `8 outs on the flop hit by the river ${pct(hitProbability(8, 47, 2))}.`, vs: 'vs Gutshot: a gutshot needs one specific rank (4 outs).' },
+  { term: 'Outs', definition: 'Unseen cards that give you the best hand.' },
+  { term: 'Overbet', definition: 'A bet bigger than the pot.' },
+  { term: 'Overcard', definition: 'A hole card higher than every card on the board.', vs: 'vs Overpair: an overpair is a pocket pair higher than every board card — it’s already a made hand.' },
+  { term: 'Overpair', definition: 'A pocket pair higher than every card on the board.', vs: 'vs Overcard: overcards are unpaired high cards that still need to hit.' },
+  { term: 'Polarized range', definition: 'A range made of very strong hands and bluffs, with few medium hands.', vs: 'vs Merged/linear range: a merged range bets strong and medium hands together.' },
+  { term: 'Position', definition: 'Where you act relative to others; acting last is “in position”.' },
+  { term: 'Pot control', definition: 'Checking or calling to keep the pot small with a medium-strength hand.' },
+  { term: 'Pot odds', definition: 'The price of a call: call / (pot + bet + call) equity needed.', example: () => `$4 into a $6 pot after a $4 bet: ${requiredEquity(6, 4).working}.`, vs: 'vs Implied odds: pot odds use only the money in the pot now.' },
+  { term: 'Range', definition: 'All the hands a player could have in a spot, with how likely each is.' },
+  { term: 'Range advantage', definition: 'When your whole range has more equity than your opponent’s on a board.', vs: 'vs Nut advantage: that’s about who holds more of the very best hands.' },
+  { term: 'Rainbow', definition: 'A flop with three different suits (no flush draw).' },
+  { term: 'Reverse implied odds', definition: 'Money you lose later by making a second-best hand.', vs: 'vs Implied odds: the extra money you win later.' },
+  { term: 'River', definition: 'The fifth and last community card.' },
+  { term: 'Runner-runner', definition: 'Hitting a hand with both the turn and the river.', vs: 'vs Backdoor draw: “backdoor” is the draw before it completes.' },
+  { term: 'Semi-bluff', definition: 'A bet with a drawing hand: it wins by folds or by improving.', vs: 'vs Bluff: a pure bluff has little showdown equity.' },
+  { term: 'Set', definition: 'Three of a kind using a pocket pair plus one board card.', example: () => `A pocket pair flops a set or better ${pct(hitProbability(2, 50, 3))} of the time.`, vs: 'vs Trips: trips use one hole card plus a pair on the board — easier for opponents to have too.' },
+  { term: 'Side pot', definition: 'A separate pot for chips an all-in player can’t match.' },
+  { term: 'Small blind (SB)', definition: 'The smaller forced bet, half a big blind, left of the button.' },
+  { term: 'SPR (stack-to-pot ratio)', definition: 'Effective stack divided by the pot on the flop; low SPR means commitment comes quickly.', example: () => `36bb behind and a 9bb pot: SPR ${stackToPotRatio(36, 9).toFixed(1)}.` },
+  { term: 'Suited connectors', definition: 'Consecutive suited cards like {7h}{6h}.' },
+  { term: 'Thin value', definition: 'A value bet with a hand that beats only a little over half of the hands that call.', vs: 'vs Value bet: a standard value bet is ahead of most calls; thin value is close to breakeven and depends on opponents calling too wide.', related: ['Value bet'] },
+  { term: 'Tilt', definition: 'Emotional play that ignores good decisions.' },
+  { term: 'Trips', definition: 'Three of a kind using one hole card and a pair on the board.', vs: 'vs Set: a set uses a pocket pair and is better disguised.' },
+  { term: 'Turn', definition: 'The fourth community card.' },
+  { term: 'Two-tone', definition: 'A flop with two cards of one suit (flush draws possible).' },
+  { term: 'UTG (under the gun)', definition: 'The first seat to act preflop, left of the big blind.' },
+  { term: 'Value bet', definition: 'A bet that wants to be called by worse hands.', vs: 'vs Thin value: a regular value bet beats most calling hands comfortably.' },
+  { term: 'VPIP / PFR', definition: 'Voluntarily Put money In Pot / Preflop Raise: how often a player plays and raises preflop.' },
+  { term: 'Wet board', definition: 'A board with many possible draws and strong hands.', vs: 'vs Dry board: few draws; later cards rarely change who is ahead.' },
+  { term: 'Dry board', definition: 'A board with few draws, like K-7-2 rainbow.', vs: 'vs Wet board: many draws and connected cards.' },
+  { term: 'WTSD', definition: 'Went To ShowDown: how often a player who sees the flop reaches showdown.' },
+];

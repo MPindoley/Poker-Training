@@ -1,5 +1,7 @@
 import { motion, type HTMLMotionProps } from 'framer-motion';
 import type { ReactNode } from 'react';
+import { haptic } from '../../lib/haptics';
+import { sfx, type Sfx } from '../../lib/sound';
 
 export type ButtonColor = 'green' | 'gold' | 'blue' | 'red' | 'purple' | 'cream';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -14,7 +16,7 @@ const COLORS: Record<ButtonColor, string> = {
 };
 
 const SIZES: Record<ButtonSize, string> = {
-  sm: 'h-10 px-4 text-base rounded-xl gap-1.5',
+  sm: 'h-11 px-4 text-base rounded-xl gap-1.5',
   md: 'h-13 px-5 text-xl rounded-2xl gap-2',
   lg: 'h-16 px-6 text-2xl rounded-[1.25rem] gap-2.5',
 };
@@ -25,6 +27,8 @@ export interface GameButtonProps extends Omit<HTMLMotionProps<'button'>, 'childr
   icon?: ReactNode;
   fullWidth?: boolean;
   children?: ReactNode;
+  /** Sound on tap (default a soft click); false for silence. */
+  sound?: Sfx | false;
 }
 
 /** Big chunky, glossy button that squashes when tapped. */
@@ -36,6 +40,8 @@ export function GameButton({
   disabled,
   className = '',
   children,
+  sound = 'tap',
+  onPointerDown,
   ...rest
 }: GameButtonProps) {
   const light = color === 'gold' || color === 'cream';
@@ -43,6 +49,13 @@ export function GameButton({
     <motion.button
       type="button"
       disabled={disabled}
+      onPointerDown={(e) => {
+        if (!disabled) {
+          if (sound) sfx(sound);
+          haptic('light');
+        }
+        onPointerDown?.(e);
+      }}
       whileTap={disabled ? undefined : { scaleX: 1.05, scaleY: 0.9, y: 4, boxShadow: '0 1px 0 0 var(--color-ink)' }}
       whileHover={disabled ? undefined : { y: -1 }}
       transition={{ type: 'spring', stiffness: 600, damping: 15 }}

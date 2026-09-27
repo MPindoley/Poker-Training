@@ -43,14 +43,43 @@ Reuse these; extend them rather than restyling ad hoc. All are shown on the `/st
 - `RangeGrid` — 13x13 hand matrix, tap/drag to paint; stats from `engine/hands`.
 - `FeedbackBanner` (grade + why + worked math) and `ToastHost` / `toast()` for transient messages.
 - `Celebration` — confetti + coins burst.
+- `Toggle` — on/off switch for settings.
+
+## Engine map (`src/engine`)
+- `cards` (Card, parse, integer indices 0..51 = rank*4+suit), `rng` (seedable Mulberry32, shuffle).
+- `evaluator` — 5/6/7-card evaluator; `evaluateIndices` is the fast path (comparable int score),
+  `evaluateHand` adds category, best five cards and a description.
+- `range` — weighted 1326-combo ranges: `parseRange` notation, card removal, grid and notation conversion.
+- `equity` — `calculateEquity(players, { board, dead, iterations, seed })`: exact enumeration up to
+  `maxExactBoards`, else Monte Carlo with a 95% margin. UI must call it via `src/workers/equityClient`
+  (`runEquity`) so it runs in a Web Worker.
+- `outs` (clean/dirty outs vs a range), `texture` (board classifier + `rangeAdvantage`),
+  `odds` (pot odds, MDF, bluff breakeven, EV, implied odds, SPR).
+- `preflop/solverImport` — JSON/CSV solver output → chart overrides (`/train/preflop/import`); imported
+  spots replace the built-in charts everywhere (drills, coach, Play).
+
+## Progression (`src/engine/meta`, pure)
+- `skills` (5 radar areas; each drill kind maps to one; smoothed accuracy), `xp` (answer XP × difficulty,
+  round accuracy bonus), `arenas` (level-gated, each unlocks a table theme), `cosmetics` (card backs, felts,
+  chip sets, themes; `openChest`; `resolveLoadout`), `daily` (3 tasks from the weakest areas, seeded by day),
+  `sessions` (Quick Drill / Warm-Up plans), `achievements` (pure checks over a snapshot).
+- State: `rewardsStore` (cosmetics, chests, achievements, daily counts), `eventsStore` (level-up queue).
+  `ProgressionHost` (mounted in App) turns milestones into chests and celebrations; it waits for
+  `useProgressHydrated()` so it never acts on empty pre-IndexedDB state.
+- Rewards are cosmetic only. Sounds are synthesised (`lib/sound.ts`), haptics in `lib/haptics.ts`;
+  `GameButton` clicks and `FeedbackBanner` grades play them automatically.
 
 ## App structure (bottom tab bar)
-- **Home** (`/`): daily drills, streak, level, quick-start buttons.
+- **Home** (`/`): level, arena, streak, Daily Training (3 tasks), chests, Quick Drill / Pre-Game Warm-Up /
+  Log Last Night's Hands.
 - **Train** (`/train`): trainer modules — Math, Preflop, Postflop, Exploit Lab.
 - **Play** (`/play`): simulated table vs bots with a coach.
 - **Review** (`/review`): log real hands and sessions, see leaks.
 - **Learn** (`/learn`): lessons and glossary.
+- `/profile`: skill radar, arenas, achievements, cosmetics locker, settings (linked from Home).
+- `/train/session?type=quick|warmup&venue=home|casino`: mixed sessions built from existing drills.
 - `/styleguide`: design-system showcase (linked from Home, no tab).
+- `/debug/equity`: hidden equity sanity-check screen (no link anywhere).
 
 ## Accuracy rules (non-negotiable)
 1. **Every number shown to the player must come from computation in `src/engine`**, never hardcoded
@@ -65,11 +94,14 @@ Reuse these; extend them rather than restyling ad hoc. All are shown on the `/st
 ## Commands
 - `npm run dev` — dev server on the LAN (port 5173) for testing on a phone.
 - `npm run build` / `npm run preview` — production build with service worker (port 4173).
-- `npm test` — Vitest. `npm run typecheck` — TypeScript.
+- `npm test` — Vitest (includes a 50-spot exact-vs-Monte-Carlo equity cross-check). `npm run test:coverage` —
+  engine coverage. `npm run typecheck` — TypeScript.
+- Deploy: see `DEPLOY.md` (Vercel, `vercel.json` has SPA rewrites; iPhone Add to Home Screen steps).
 - `node scripts/make-icons.mjs` — regenerate PNG app icons from `public/icon-source.svg`
   (needs Chromium; set `CHROMIUM=/path/to/chromium`).
 
 ## Gotchas
 - Don't set `initial={false}` on the route-level `AnimatePresence` in `App.tsx`: it propagates to every
   descendant and silently disables all mount animations (confetti, dealt cards, toasts).
+- Tap targets must be ≥ 44px (`GameButton` sm is 44px tall; `ChipGroup` chips have `min-w-11`).
 - Service workers only register on `localhost` or HTTPS, so offline mode can't be tested over plain LAN HTTP.
