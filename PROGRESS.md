@@ -224,7 +224,7 @@ See "Open questions for Matt" above:
 
 ### 5. How to try it and how to merge
 
-- **Branch:** `feature/home-game-pack`, pushed to GitHub. A Vercel preview builds for it if the Vercel GitHub integration is on; the link appears on the pull request.
+- **Branch:** `feature/home-game-pack`, pushed to GitHub as draft PR 3. Vercel preview: https://poker-training-git-feature-home-game-pack-mpindoleys-projects.vercel.app
 - **Locally:** `git checkout feature/home-game-pack && npm install && npm run dev`, then open the printed LAN address on your phone. `npm test`, `npm run typecheck` and `npm run audit:strategy` also work.
 - **Base:** the branch was built on top of PR #2 (the bigger postflop section), so merging it also brings in PR #2.
   - Simplest path: merge PR #2 first, then the Home Game Pack pull request. It shows only this pack once PR #2 is in.
