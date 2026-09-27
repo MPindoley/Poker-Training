@@ -4,7 +4,7 @@
  * it takes that action under a VillainModel.
  */
 import { COMBOS, type Range } from '../range';
-import { continueProb, STREET_BLUFF_FACTOR, type VillainModel } from '../strategy/villainModel';
+import { actionProbs, continueProb, STREET_BLUFF_FACTOR, type VillainModel } from '../strategy/villainModel';
 import { classifyHand, BUCKETS, type Bucket, type HandInfo } from './buckets';
 
 export type Street = 'flop' | 'turn' | 'river';
@@ -41,6 +41,16 @@ function fromCombos(combos: readonly ClassifiedCombo[], factor: (c: ClassifiedCo
 /** Range that continues (calls or raises) against a bet of `betFraction` × pot. */
 export function continuingRange(combos: readonly ClassifiedCombo[], betFraction: number, model: VillainModel): Range {
   return fromCombos(combos, (c) => continueProb(model, c.info.bucket, betFraction, c.info.strongDraw));
+}
+
+/** Range that just calls that bet (continuing minus raising). */
+export function callingRange(combos: readonly ClassifiedCombo[], betFraction: number, model: VillainModel): Range {
+  return fromCombos(combos, (c) => actionProbs(model, c.info.bucket, betFraction, c.info.strongDraw).call);
+}
+
+/** Range that raises (check-raises out of position) against that bet. */
+export function raisingRange(combos: readonly ClassifiedCombo[], betFraction: number, model: VillainModel): Range {
+  return fromCombos(combos, (c) => actionProbs(model, c.info.bucket, betFraction, c.info.strongDraw).raise);
 }
 
 /** Range that folds to that bet. */

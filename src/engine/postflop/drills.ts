@@ -18,8 +18,11 @@ import type { Difficulty, Question, StrategyVisual } from '../drills/types';
 import { BUCKET_NAMES } from './buckets';
 import { classifyRange, composition, continuingRange, type Street } from './narrow';
 import { POT_TYPE_NAMES, THEME_NAMES, generateSpot, type PotType, type Spot, type Theme } from './scenario';
+import { describeCardChanges } from './turnCard';
+import { calculateEquity } from '../equity';
+import { potOdds } from '../odds';
 
-export const THEMES: readonly Theme[] = ['cbet', 'value', 'bluff', 'facing', 'reading', 'short'];
+export const THEMES: readonly Theme[] = ['cbet', 'value', 'bluff', 'facing', 'reading', 'short', 'checkraise', 'turn', 'river', 'multiway'];
 export const STREETS: readonly Street[] = ['flop', 'turn', 'river'];
 export const POT_TYPES: readonly PotType[] = ['srp', '3bet', 'limped', 'multiway'];
 
@@ -43,6 +46,10 @@ const THEME_SIZES: Record<Theme, number[]> = {
   facing: [],
   reading: [],
   short: [0.33, 0.5, 99],
+  checkraise: [],
+  turn: [0.5, 0.75, 1.25],
+  river: [0.33, 0.66, 1, 1.5, 2],
+  multiway: [0.25, 0.33, 0.5, 0.75],
 };
 
 export function rangeVisual(range: Range, caption: string, highlight?: string, color = '#f5b820'): StrategyVisual {
@@ -67,7 +74,11 @@ function baseContext(spot: Spot, a: SpotAnalysis): Question['context'] {
     villain: `You: ${spot.heroSeat} (${spot.heroIP ? 'in position' : 'out of position'}) vs ${v}${spot.villains.length > 1 ? '' : ` · ${spot.model.name}`}`,
     lines: [
       ...spot.history.map((h) => h.text),
-      spot.facingBet !== null
+      spot.facingRaise
+        ? `Now: ${spot.villains[0]!.seat} checks, you bet ${bb(spot.facingRaise.heroBet)} into ${bb(spot.pot)}, ${spot.villains[0]!.seat} check-raises to ${bb(spot.facingRaise.raiseTo)}.`
+        : spot.facingBet !== null && spot.callersBefore?.length
+        ? `Now: ${spot.villains[0]!.seat} bets ${bb(spot.facingBet)} into ${bb(spot.pot - spot.facingBet * spot.callersBefore.length)}, ${spot.callersBefore.join(' and ')} call${spot.callersBefore.length > 1 ? '' : 's'}.`
+        : spot.facingBet !== null
         ? `Now: ${spot.heroIP ? '' : 'you check, '}${spot.villains[0]!.seat} bets ${bb(spot.facingBet)} into ${bb(spot.pot)}.`
         : spot.checkedTo
           ? `Now: ${v} check${spot.villains.length > 1 ? '' : 's'} to you.`
@@ -90,7 +101,13 @@ function optionQuestion(spot: Spot, a: SpotAnalysis, difficulty: Difficulty, id:
     skill,
     tags: [`postflop.street:${spot.street}`, `postflop.pot:${spot.potType}`],
     difficulty,
-    prompt: spot.facingBet !== null ? 'Villain bets. Fold, call or raise?' : `${spot.street[0]!.toUpperCase()}${spot.street.slice(1)}: check or bet — and how much?`,
+    prompt: spot.facingRaise
+      ? 'You got check-raised. Fold, call or move all-in?'
+      : spot.facingBet !== null
+        ? spot.heroIP
+          ? `${spot.villains[0]!.seat} bets. Fold, call or raise?`
+          : `You check and ${spot.villains[0]!.seat} bets. Fold, call or check-raise?`
+        : `${spot.street[0]!.toUpperCase()}${spot.street.slice(1)}: check or bet — and how much?`,
     context: baseContext(spot, a),
     choices: a.options.map((o, i) => ({ id: `o${i}`, label: o.label, grade: o.grade, note: `EV ≈ ${signedBb(o.ev)}` })),
     explanation: { summary: a.summary, steps: a.steps },
@@ -126,6 +143,7 @@ function themeQuestion(ctx: PostflopContext, rng: Rng, difficulty: Difficulty, v
   if (theme === 'reading') return readingQuestion(ctx, rng, difficulty, street, potType, id, variant);
   if (theme === 'value' && extra === 'streets') return streetsQuestion(ctx, rng, difficulty, potType, id, variant);
   if (theme === 'bluff' && extra === 'blockers') return blockerQuestion(ctx, rng, difficulty, potType, id, variant);
+  if (theme === 'checkraise' || theme === 'turn' || theme === 'river' || theme === 'multiway') return deepQuestion(ctx, rng, difficulty, theme, street, potType, extra, id, variant);
   const spot = spotFor(
     ctx,
     rng,
@@ -268,11 +286,139 @@ function readingQuestion(ctx: PostflopContext, rng: Rng, difficulty: Difficulty,
 }
 
 // ---------------------------------------------------------------------------
+// Check-raises, turn barrels, river decisions and multi-way pots.
+
+const pctText = (x: number) => formatPercent(x, 0);
+
+function rangeMix(spot: Spot, range: Range): { value: number; draws: number; bluffs: number; bluffCatchers: number } {
+  const c = composition(classifyRange(range, spot.board, spot.hero)).share;
+  return { value: c.monster + c.strong, draws: c.draw, bluffs: c.air, bluffCatchers: c.medium + c.weak };
+}
+
+/** Equity of hero's whole range vs villain's whole range on a board (range advantage). */
+function rangeEquityOn(spot: Spot, board: readonly number[], seed: number): number {
+  return calculateEquity([spot.heroRange, spot.villains[0]!.range], { board: board.map(indexToString).join(''), iterations: 2500, seed, forceMonteCarlo: true }).players[0]!.equity;
+}
+
+function deepQuestion(
+  ctx: PostflopContext,
+  rng: Rng,
+  difficulty: Difficulty,
+  theme: 'checkraise' | 'turn' | 'river' | 'multiway',
+  street: Street | undefined,
+  potType: PotType | undefined,
+  extra: string | undefined,
+  id: string,
+  variant: string,
+): Question {
+  const seed = Math.floor(rng() * 1e9);
+  if (theme === 'checkraise' && !potType) potType = rng() < 0.75 ? 'srp' : '3bet';
+  const s = street ?? pick(rng, theme === 'turn' ? ['turn'] : theme === 'river' ? ['river'] : theme === 'multiway' ? ['flop', 'flop', 'turn', 'river'] : ['flop', 'flop', 'turn']);
+  let spot: Spot;
+  let a: SpotAnalysis;
+  const notes: string[] = [];
+  let prompt: string | undefined;
+
+  if (theme === 'checkraise' && extra === 'face') {
+    spot = spotFor(ctx, rng, theme, s, potType, { heroRole: 'aggressor', heroIP: true, action: 'facingRaise' });
+    a = analyzeSpot(spot, { seed });
+    const mix = rangeMix(spot, spot.villains[0]!.range);
+    notes.push(`Check-raise range: ${pctText(mix.value)} strong value (top pair good kicker+), ${pctText(mix.draws)} semi-bluffs (draws), ${pctText(mix.bluffs)} pure bluffs, ${pctText(mix.bluffCatchers)} other.`);
+    notes.push('Check-raises are weighted to value: you need a strong hand or a strong draw to continue, not just a pair that was good when you bet.');
+  } else if (theme === 'checkraise') {
+    spot = spotFor(ctx, rng, theme, s, potType, { heroRole: 'caller', heroIP: false, action: 'facing', facingSize: [0.33, 0.75] });
+    a = analyzeSpot(spot, { seed, raiseSizes: [3, 4.5] });
+    const mix = rangeMix(spot, spot.villains[0]!.range);
+    notes.push(`Villain's c-bet range: ${pctText(mix.value)} strong value, ${pctText(mix.draws)} draws, ${pctText(mix.bluffs + mix.bluffCatchers)} weaker hands and air.`);
+    notes.push('A check-raise wins two ways: villain folds its weak c-bets now, or you get called with a hand that has equity (strong value or a good draw).');
+  } else if (theme === 'turn') {
+    spot = spotFor(ctx, rng, theme, 'turn', potType, { heroRole: 'aggressor', line: 'barrel', action: 'first' });
+    a = analyzeSpot(spot, { sizes: THEME_SIZES.turn, seed });
+    const flop = spot.board.slice(0, 3);
+    const before = rangeEquityOn(spot, flop, seed + 1);
+    const after = rangeEquityOn(spot, spot.board, seed + 1);
+    notes.push(`Turn card: ${describeCardChanges(flop, spot.board[3]!)}`);
+    notes.push(`Same ranges, flop vs turn: your range had ${formatPercent(before)} equity vs villain's calling range on the flop and has ${formatPercent(after)} now (${after >= before ? '+' : '−'}${formatPercent(Math.abs(after - before))}).`);
+    notes.push('Barrel cards: overcards and scare cards that hit your range more than the caller’s. Checking cards: ones that complete the caller’s draws.');
+    prompt = 'Your flop bet was called. Turn: barrel or check — and how much?';
+  } else if (theme === 'river' && extra === 'bluffcatch') {
+    spot = spotFor(ctx, rng, theme, 'river', potType, { action: 'facing', heroBuckets: ['medium', 'weak'], facingSize: [0.5, 1.25] });
+    a = analyzeSpot(spot, { seed });
+    const mix = rangeMix(spot, spot.villains[0]!.range);
+    const need = potOdds(spot.pot + spot.facingBet!, spot.facingBet!).requiredEquity;
+    notes.push(`Villain's river betting range: ${pctText(mix.value)} value, ${pctText(mix.bluffs)} bluffs (missed draws and air), ${pctText(mix.bluffCatchers)} thin value.`);
+    notes.push(`A bluff-catcher mostly beats bluffs: calling pays when bluffs (plus the thin value you beat) exceed the ${formatPercent(need)} you need. Your hand wins ${formatPercent(a.heroEquity)} against the whole range.`);
+    prompt = 'River bet. Is your hand a good enough bluff-catcher?';
+  } else if (theme === 'river') {
+    spot = spotFor(ctx, rng, theme, 'river', potType, { action: 'first', heroBuckets: ['monster', 'strong', 'air'] });
+    a = analyzeSpot(spot, { sizes: THEME_SIZES.river, seed });
+    const over = a.options.filter((o) => o.action === 'bet' && o.fraction !== null && o.fraction > 1.01);
+    if (over.length) {
+      const top = over.reduce((x, y) => (y.ev > x.ev ? y : x));
+      notes.push(`Overbets: ${top.label} gets called ${pctText(1 - (top.foldPct ?? 0))} of the time (EV ≈ ${signedBb(top.ev)}). They work when your range has more nutted hands than villain's, so villain can't raise and has to call with bluff-catchers or fold.`);
+    }
+    notes.push(`Nut share on this river: you ${pctText(a.heroNutShare)} vs villain ${pctText(a.villainNutShare)}.`);
+    prompt = 'River: check or bet — and would an overbet work?';
+  } else if (extra === 'facing') {
+    spot = spotFor(ctx, rng, theme, s, 'multiway', { action: 'facing', facingSize: [0.33, 0.8] });
+    a = analyzeSpot(spot, { seed });
+    const callers = spot.callersBefore ?? [];
+    notes.push(`${callers.length} player${callers.length > 1 ? 's' : ''} already called: the pot is bigger, so the price improves, but you need to beat ${spot.villains.length} ranges — the bettor's and ${callers.length > 1 ? 'the callers’' : 'the caller’s'} (callers keep their medium and strong hands).`);
+    notes.push(`Your equity against everyone together: ${formatPercent(a.heroEquity)}. With more players in, draws to the nuts gain and one-pair hands lose value.`);
+    prompt = `${spot.villains[0]!.seat} bets and ${callers.join(' and ')} call${callers.length > 1 ? '' : 's'}. Fold, call or raise?`;
+  } else {
+    spot = spotFor(ctx, rng, theme, s, 'multiway', { heroRole: 'aggressor', action: 'first' });
+    a = analyzeSpot(spot, { sizes: THEME_SIZES.multiway, seed });
+    const half = a.options.find((o) => o.action === 'bet' && o.fraction !== null && Math.abs(o.fraction - 0.5) < 0.1) ?? a.options.find((o) => o.action === 'bet')!;
+    const each = spot.villains.map((v) => {
+      const combos = classifyRange(v.range, spot.board, spot.hero);
+      const total = combos.reduce((t, c) => t + c.weight, 0);
+      let cont = 0;
+      continuingRange(combos, half.fraction!, ctx.model).weights.forEach((w) => (cont += w));
+      return total > 0 ? 1 - cont / total : 0;
+    });
+    const product = each.reduce((x, y) => x * y, 1);
+    notes.push(`Everyone has to fold for a bluff to win: ${each.map((f) => pctText(f)).join(' × ')} = ${formatPercent(product)} at ${half.label.replace(/^Bet /, '')}.`);
+    notes.push(`Against ${spot.villains.length} players, bet mainly for value and with strong draws; your equity vs all of them is ${formatPercent(a.heroEquity)}.`);
+    prompt = `${spot.villains.length + 1}-way pot. Check or bet — and how much?`;
+  }
+
+  const q = optionQuestion(spot, a, difficulty, id, `postflop.${variant}`);
+  q.kind = `postflop.${theme}`;
+  if (prompt) q.prompt = prompt;
+  q.explanation.steps = [...notes, ...q.explanation.steps];
+  return q;
+}
+
+const pick = <T>(rng: Rng, items: readonly T[]): T => items[Math.floor(rng() * items.length)]!;
 
 export function postflopVariants(theme: Theme, filters: PostflopFilters): string[] {
   const streets = (filters.streets?.length ? filters.streets : ['*']) as (Street | '*')[];
   const pots = (filters.potTypes?.length ? filters.potTypes : ['*']) as (PotType | '*')[];
   const out: string[] = [];
+  const has = (st: Street) => streets.includes('*') || streets.includes(st);
+  const potOk = (p: PotType | '*', allowed: readonly PotType[]) => p === '*' || allowed.includes(p);
+  if (theme === 'checkraise' || theme === 'turn' || theme === 'river' || theme === 'multiway') {
+    for (const p of pots) {
+      if (theme === 'checkraise' && potOk(p, ['srp', '3bet'])) {
+        for (const st of ['flop', 'turn'] as const) if (has(st)) out.push(`checkraise|${st}|${p}|make`, `checkraise|${st}|${p}|face`);
+      }
+      if (theme === 'turn' && has('turn') && potOk(p, ['srp', '3bet', 'multiway'])) out.push(`turn|turn|${p}|barrel`);
+      if (theme === 'river' && has('river') && potOk(p, ['srp', '3bet', 'limped', 'multiway'])) out.push(`river|river|${p}|bluffcatch`, `river|river|${p}|size`);
+      if (theme === 'multiway' && potOk(p, ['multiway'])) {
+        if (has('flop')) out.push('multiway|flop|multiway|cbet');
+        for (const st of STREETS) if (has(st)) out.push(`multiway|${st}|multiway|facing`);
+      }
+    }
+    // Filters that rule a theme out entirely fall back to its default spots.
+    const fallback: Record<string, string[]> = {
+      checkraise: ['checkraise|flop|*|make', 'checkraise|flop|*|face'],
+      turn: ['turn|turn|*|barrel'],
+      river: ['river|river|*|bluffcatch', 'river|river|*|size'],
+      multiway: ['multiway|flop|multiway|cbet', 'multiway|flop|multiway|facing'],
+    };
+    return [...new Set(out)].length ? [...new Set(out)] : fallback[theme]!;
+  }
   for (const s of streets) for (const p of pots) {
     if (theme === 'cbet' && (p === 'limped' || s === 'river')) continue;
     if (theme === 'short' && (p === 'multiway' || p === 'limped')) continue;

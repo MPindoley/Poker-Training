@@ -13,6 +13,10 @@ const THEME_INFO: Record<Theme, { blurb: string; glyph: string; color: string }>
   facing: { blurb: 'Call, raise or fold vs bets', glyph: 'VS', color: 'from-[#6fb2ff] to-sapphire-dark' },
   reading: { blurb: 'Narrow ranges street by street', glyph: '?', color: 'from-[#b88bff] to-grape-dark' },
   short: { blurb: '~40bb: when to get it in', glyph: '40', color: 'from-wood-300 to-wood-700' },
+  checkraise: { blurb: 'Make them, and face them', glyph: 'XR', color: 'from-[#ff9f5a] to-[#b3470f]' },
+  turn: { blurb: 'Which turn cards to keep firing on', glyph: 'T', color: 'from-[#5fd6c9] to-[#0f6f66]' },
+  river: { blurb: 'Bluff-catching, thin value, overbets', glyph: 'R', color: 'from-[#8fa0ff] to-[#2f3fa8]' },
+  multiway: { blurb: '3 and 4 players: tighter bets and calls', glyph: '3+', color: 'from-[#f78fd1] to-[#9c1f6d]' },
 };
 
 export function PostflopTrainerScreen() {
@@ -90,8 +94,8 @@ export function PostflopTrainerScreen() {
         </div>
       </Panel>
       <p className="text-center text-xs font-semibold text-cream/70">
-        Grades come from readable rules in src/engine/strategy/rules.ts and the villain model in villainModel.ts. EVs are simplified one-street
-        estimates.
+        Grades come from readable rules in src/engine/strategy/rules.ts and the villain model in villainModel.ts (which folds, calls and
+        raises). EVs are simplified one-street estimates.
       </p>
     </div>
   );

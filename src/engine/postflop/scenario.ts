@@ -9,10 +9,10 @@ import { COMBOS, parseRange, type Range } from '../range';
 import type { Rng } from '../rng';
 import { HERO_LINE_MODEL, forStreet, type VillainModel } from '../strategy/villainModel';
 import type { Bucket } from './buckets';
-import { bettingRange, checkingRange, classifyRange, continuingRange, type Street } from './narrow';
+import { bettingRange, callingRange, checkingRange, classifyRange, continuingRange, raisingRange, type Street } from './narrow';
 
 export type PotType = 'srp' | '3bet' | 'limped' | 'multiway';
-export type Theme = 'cbet' | 'value' | 'bluff' | 'facing' | 'reading' | 'short';
+export type Theme = 'cbet' | 'value' | 'bluff' | 'facing' | 'reading' | 'short' | 'checkraise' | 'turn' | 'river' | 'multiway';
 
 export const POT_TYPE_NAMES: Record<PotType, string> = { srp: 'Single-raised', '3bet': '3-bet pot', limped: 'Limped pot', multiway: 'Multi-way' };
 export const THEME_NAMES: Record<Theme, string> = {
@@ -22,6 +22,10 @@ export const THEME_NAMES: Record<Theme, string> = {
   facing: 'Facing bets',
   reading: 'Hand reading',
   short: 'Short stack (~40bb)',
+  checkraise: 'Check-raises',
+  turn: 'Turn barrels',
+  river: 'River decisions',
+  multiway: 'Multi-way pots',
 };
 
 /** Loose limping range used for limped pots (home-game style). */
@@ -60,6 +64,10 @@ export interface Spot {
   facingBet: number | null;
   /** True if villain checked to hero this street. */
   checkedTo: boolean;
+  /** Hero bet this street and villain raised (check-raised when villain is out of position). */
+  facingRaise?: { heroBet: number; raiseTo: number };
+  /** Players who called the bet before hero acts (multi-way pots). */
+  callersBefore?: string[];
   history: HistoryLine[];
   /** Villain's range at each street (for hand reading), with labels. */
   rangeTrail: { label: string; range: Range }[];
@@ -83,6 +91,16 @@ export interface SpotOptions {
   heroBuckets?: readonly Bucket[];
   /** Force a bet-size range when hero faces a bet, as a pot fraction. */
   facingSize?: [number, number];
+  /** Players in a multi-way pot (3 or 4; default 3). */
+  players?: 3 | 4;
+  /** Hero is the preflop aggressor or one of the callers. */
+  heroRole?: 'aggressor' | 'caller';
+  /** Hero must be in position (true) or out of position (false). */
+  heroIP?: boolean;
+  /** Earlier streets: 'barrel' = the aggressor bets and gets called every street (no check-throughs). */
+  line?: 'barrel';
+  /** This street: hero faces a bet, hero bet and faces a raise, or hero is first to bet (checked to / acts first). */
+  action?: 'facing' | 'facingRaise' | 'first';
 }
 
 const THEME_BUCKETS: Record<Theme, readonly Bucket[]> = {
@@ -92,6 +110,10 @@ const THEME_BUCKETS: Record<Theme, readonly Bucket[]> = {
   facing: ['monster', 'strong', 'medium', 'draw', 'weak', 'air'],
   reading: ['monster', 'strong', 'medium', 'draw', 'weak', 'air'],
   short: ['monster', 'strong', 'medium', 'draw'],
+  checkraise: ['monster', 'strong', 'medium', 'draw', 'weak', 'air'],
+  turn: ['monster', 'strong', 'medium', 'draw', 'weak', 'air'],
+  river: ['monster', 'strong', 'medium', 'weak', 'air'],
+  multiway: ['monster', 'strong', 'medium', 'draw', 'weak', 'air'],
 };
 
 interface Preflop {
@@ -103,7 +125,7 @@ interface Preflop {
   text: string;
 }
 
-function preflop(rng: Rng, chart: Chart, potType: PotType, stackBb: number): Preflop | null {
+function preflop(rng: Rng, chart: Chart, potType: PotType, stackBb: number, players = 3): Preflop | null {
   const deadBlinds = (involved: string[]) => (involved.includes('SB') ? 0 : 0.5) + (involved.includes('BB') ? 0 : 1);
   if (potType === 'limped') {
     const sb: Player = { seat: 'SB', range: parseRange(LIMP_RANGE), stack: stackBb - 1, aggressor: false };
@@ -138,18 +160,24 @@ function preflop(rng: Rng, chart: Chart, potType: PotType, stackBb: number): Pre
     const extra = chart
       .facingOpenPairs()
       .filter((p) => p.opener === opener && p.seat !== seat && chart.vsOpen(p.seat, opener)!.notation.call);
-    if (!extra.length) return null;
-    const e = pick(rng, extra);
-    const ep: Player = { seat: e.seat, range: chart.vsOpen(e.seat, opener)!.ranges.call!, stack: stackBb - open, aggressor: false };
+    if (extra.length < players - 2) return null;
+    const chosen: string[] = [];
+    while (chosen.length < players - 2) {
+      const e = pick(rng, extra).seat;
+      if (!chosen.includes(e)) chosen.push(e);
+    }
     const seatsOrder = chart.seats;
-    const callers = [callerP, ep].sort((a, b) => seatsOrder.indexOf(a.seat) - seatsOrder.indexOf(b.seat));
+    const callers = [callerP, ...chosen.map((c) => ({ seat: c, range: chart.vsOpen(c, opener)!.ranges.call!, stack: stackBb - open, aggressor: false }))].sort(
+      (a, b) => seatsOrder.indexOf(a.seat) - seatsOrder.indexOf(b.seat),
+    );
+    const names = callers.map((c) => c.seat);
     return {
       potType,
-      pot: open * 3 + deadBlinds([opener, seat, e.seat]),
+      pot: open * players + deadBlinds([opener, ...names]),
       stack: stackBb - open,
       aggressor: openerP,
       others: callers,
-      text: `${opener} opens to ${open}bb, ${callers[0]!.seat} and ${callers[1]!.seat} call.`,
+      text: `${opener} opens to ${open}bb, ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} call.`,
     };
   }
   return {
@@ -180,21 +208,34 @@ export function generateSpot(rng: Rng, opts: SpotOptions): Spot {
   const theme = opts.theme;
   const stackBb = opts.stackBb ?? (theme === 'short' ? 40 : 100);
   for (let attempt = 0; attempt < 60; attempt++) {
-    let potType: PotType = opts.potType ?? pick(rng, ['srp', 'srp', 'srp', '3bet', 'limped', 'multiway'] as const);
+    let potType: PotType = opts.potType ?? (theme === 'multiway' ? 'multiway' : pick(rng, ['srp', 'srp', 'srp', '3bet', 'limped', 'multiway'] as const));
     if (theme === 'cbet' && potType === 'limped') potType = 'srp';
     // Short-stack spots are about low SPR: raised pots only.
     if (theme === 'short' && (potType === 'limped' || potType === 'multiway')) potType = rng() < 0.7 ? 'srp' : '3bet';
     const street: Street = opts.street ?? (theme === 'value' ? pick(rng, ['turn', 'river', 'river'] as const) : theme === 'cbet' ? pick(rng, ['flop', 'flop', 'turn'] as const) : pick(rng, ['flop', 'turn', 'river'] as const));
-    const pre = preflop(rng, opts.chart, potType, stackBb);
+    if ((opts.heroRole || opts.action === 'facingRaise' || opts.line) && potType === 'limped') potType = 'srp';
+    const pre = preflop(rng, opts.chart, potType, stackBb, opts.players ?? (potType === 'multiway' && rng() < 0.4 ? 4 : 3));
     if (!pre) continue;
     const players = [pre.aggressor, ...pre.others];
 
     // Choose hero's seat by theme.
     let heroP: Player;
-    if (theme === 'cbet') heroP = pre.aggressor;
+    const lastToAct = players.reduce((a, b) => (actsAfter(b.seat, a.seat) ? b : a));
+    const multiwayFacing = pre.others.length > 1 && (opts.action ?? (theme === 'facing' ? 'facing' : undefined)) === 'facing';
+    if (multiwayFacing) heroP = lastToAct;
+    else if (opts.heroRole === 'aggressor' || theme === 'cbet') heroP = pre.aggressor;
+    else if (opts.heroRole === 'caller') heroP = pick(rng, pre.others);
     else if (theme === 'facing') heroP = pre.potType === 'limped' ? pick(rng, players) : pick(rng, pre.others);
     else heroP = pick(rng, players);
-    const villains = players.filter((p) => p !== heroP).map((p) => ({ ...p }));
+    if (opts.heroRole === 'aggressor' && heroP !== pre.aggressor) continue;
+    // Villains in postflop acting order.
+    const villains = players
+      .filter((p) => p !== heroP)
+      .map((p) => ({ ...p }))
+      .sort((a, b) => (actsAfter(a.seat, b.seat) ? 1 : -1));
+    const heroInPosition = villains.every((v) => actsAfter(heroP.seat, v.seat));
+    if (opts.heroIP !== undefined && opts.heroIP !== heroInPosition) continue;
+    if (opts.action === 'facingRaise' && (!heroInPosition || villains.length !== 1)) continue;
     const hero = { ...heroP };
 
     const boardAll = randomBoard(rng, 5);
@@ -211,7 +252,7 @@ export function generateSpot(rng: Rng, opts: SpotOptions): Spot {
       if ((s === 'flop' && nBoard === 3) || (s === 'turn' && nBoard === 4)) break;
       const b = s === 'flop' ? board.slice(0, 3) : board.slice(0, 4);
       const betFrac = s === 'flop' ? pick(rng, [0.33, 0.5]) : pick(rng, [0.5, 0.66, 0.75]);
-      const checkThrough = rng() < (theme === 'value' ? 0.35 : 0.25);
+      const checkThrough = opts.line === 'barrel' ? false : rng() < (theme === 'value' ? 0.35 : 0.25);
       const all = [hero, ...villains];
       if (checkThrough) {
         for (const p of all) p.range = checkingRange(classifyRange(p.range, b), betFrac, p === hero ? HERO_LINE_MODEL : forStreet(opts.model, s), s);
@@ -235,17 +276,41 @@ export function generateSpot(rng: Rng, opts: SpotOptions): Spot {
     }
     if (stack <= 0.5) continue;
 
-    // This street: who acts, and does hero face a bet?
-    const heroIP = villains.every((v) => actsAfter(hero.seat, v.seat));
+    // This street: who acts, and does hero face a bet (or a raise)?
+    const heroIP = heroInPosition;
     let facingBet: number | null = null;
     let checkedTo = false;
-    if (theme === 'facing' || (theme === 'reading' && rng() < 0.5)) {
+    let facingRaise: Spot['facingRaise'];
+    let callersBefore: string[] | undefined;
+    const action = opts.action ?? (theme === 'facing' || (theme === 'reading' && rng() < 0.5) ? 'facing' : 'first');
+    if (action === 'facingRaise') {
+      // Villain checks, hero bets, villain check-raises.
+      const v = villains[0]!;
+      v.range = checkingRange(classifyRange(v.range, board), 0.5, forStreet(opts.model, street), street);
+      const frac = pick(rng, [0.33, 0.5, 0.66, 0.75]);
+      const heroBet = Math.min(stack, Math.max(1, Math.round(pot * frac * 2) / 2));
+      if (heroBet >= stack * 0.5) continue;
+      hero.range = bettingRange(classifyRange(hero.range, board), heroBet / pot, HERO_LINE_MODEL, street);
+      let raiseTo = Math.min(stack, heroBet * 3);
+      if (raiseTo >= 0.6 * stack) raiseTo = stack;
+      v.range = raisingRange(classifyRange(v.range, board), heroBet / pot, forStreet(opts.model, street));
+      rangeTrail.push({ label: 'Checks', range: checkingRange(classifyRange(rangeTrail[rangeTrail.length - 1]!.range, board), 0.5, forStreet(opts.model, street), street) });
+      rangeTrail.push({ label: `Check-raises to ${fmt(raiseTo)}bb`, range: v.range });
+      facingRaise = { heroBet, raiseTo };
+    } else if (action === 'facing') {
       const [lo, hi] = opts.facingSize ?? [0.33, 1];
       const frac = Math.round((lo + rng() * (hi - lo)) * 100) / 100;
       facingBet = Math.min(stack, Math.max(1, Math.round(pot * frac * 2) / 2));
       const v = villains[0]!;
       v.range = bettingRange(classifyRange(v.range, board), facingBet / pot, forStreet(opts.model, street), street);
       rangeTrail.push({ label: `Bets ${Math.round((facingBet / pot) * 100)}% pot`, range: v.range });
+      if (multiwayFacing) {
+        // Everyone between the bettor and hero calls (hero acts last).
+        const betFrac = facingBet / pot;
+        for (const c of villains.slice(1)) c.range = callingRange(classifyRange(c.range, board), betFrac, forStreet(opts.model, street));
+        callersBefore = villains.slice(1).map((c) => c.seat);
+        pot += facingBet * callersBefore.length;
+      }
     } else if (heroIP) {
       checkedTo = true;
       for (const v of villains) v.range = checkingRange(classifyRange(v.range, board), 0.5, forStreet(opts.model, street), street);
@@ -284,6 +349,8 @@ export function generateSpot(rng: Rng, opts: SpotOptions): Spot {
       effectiveStack: stack,
       facingBet,
       checkedTo,
+      facingRaise,
+      callersBefore,
       history,
       rangeTrail,
       model: opts.model,

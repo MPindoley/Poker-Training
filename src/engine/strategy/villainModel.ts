@@ -8,10 +8,22 @@
  * betFreq: chance to bet when checked to (or lead), by bucket — the value side of the betting range.
  * bluffFactor: 1 = bluffs so bluffs make up bet/(pot + 2·bet) of the river betting range (the classic
  *   balanced ratio); >1 bluffs more, <1 bluffs less. Earlier streets allow more bluffs (draws).
+ * raiseShare: of the hands that continue vs a bet, the share that RAISE (check-raise when out of position)
+ *   instead of calling, by bucket. Strong draws use `strongDraw`. Air that continues is mostly bluff-raising.
+ *   Defaults to DEFAULT_RAISE_SHARE when a model doesn't set it.
  */
 import type { Bucket } from '../postflop/buckets';
 
 export type ModelStreet = 'flop' | 'turn' | 'river';
+
+export type RaiseShare = Record<Bucket, number> & { strongDraw: number };
+
+/**
+ * Default raise shares (of continuing hands). A simplified, readable assumption, not solver output:
+ * sets and two pair raise often, strong draws semi-bluff raise, top pair mostly calls, weak hands
+ * that continue call, and the little air that continues is mostly bluff-raising.
+ */
+export const DEFAULT_RAISE_SHARE: RaiseShare = { monster: 0.35, strong: 0.08, medium: 0.02, draw: 0.1, weak: 0, air: 0.5, strongDraw: 0.3 };
 
 export interface VillainModel {
   id: string;
@@ -20,6 +32,8 @@ export interface VillainModel {
   sizeElasticity: number;
   betFreq: Record<Bucket, number>;
   bluffFactor: number;
+  /** Share of continuing hands that raise instead of call (see header). */
+  raiseShare?: RaiseShare;
   /** Optional per-street versions (e.g. folds a lot on the flop, never on the river). */
   byStreet?: Partial<Record<ModelStreet, VillainModel>>;
 }
@@ -37,6 +51,7 @@ export const REGULAR_MODEL: VillainModel = {
   sizeElasticity: 1.3,
   betFreq: { monster: 0.75, strong: 0.7, medium: 0.35, draw: 0.5, weak: 0.1, air: 0 },
   bluffFactor: 1,
+  raiseShare: DEFAULT_RAISE_SHARE,
 };
 
 /** Default line model for hero's own range (used to narrow hero's range through earlier streets). */
@@ -55,4 +70,23 @@ export function continueProb(model: VillainModel, bucket: Bucket, betFraction: n
   if (base <= 0) return 0;
   const scale = Math.pow(Math.max(betFraction, 0.01) / 0.5, model.sizeElasticity);
   return Math.pow(base, scale);
+}
+
+/** Share of this bucket's continuing hands that raise rather than call. */
+export function raiseShareOf(model: VillainModel, bucket: Bucket, strongDraw = false): number {
+  const r = model.raiseShare ?? DEFAULT_RAISE_SHARE;
+  return strongDraw && bucket === 'draw' ? Math.max(r.draw, r.strongDraw) : r[bucket];
+}
+
+export interface ActionProbs {
+  fold: number;
+  call: number;
+  raise: number;
+}
+
+/** Fold / call / raise probabilities for a hand in `bucket` facing a bet of `betFraction` × pot. */
+export function actionProbs(model: VillainModel, bucket: Bucket, betFraction: number, strongDraw = false): ActionProbs {
+  const cont = continueProb(model, bucket, betFraction, strongDraw);
+  const raise = cont * raiseShareOf(model, bucket, strongDraw);
+  return { fold: 1 - cont, call: cont - raise, raise };
 }

@@ -55,6 +55,11 @@ Reuse these; extend them rather than restyling ad hoc. All are shown on the `/st
   (`runEquity`) so it runs in a Web Worker.
 - `outs` (clean/dirty outs vs a range), `texture` (board classifier + `rangeAdvantage`),
   `odds` (pot odds, MDF, bluff breakeven, EV, implied odds, SPR).
+- `strategy/villainModel` — fold / call / raise model per hand bucket (`actionProbs`; raises include
+  check-raises). Bots, the coach and every postflop trainer use it. Bet sizes are read as
+  call ÷ pot-before (`betFractionFacing`). `strategy/analyze` scores each option, including being raised.
+- `postflop` — spot generator (heads-up to 4-way, barrel lines, facing a bet after callers, facing a
+  check-raise), `turnCard` (what a new card changed), drill packs incl. check-raises, turn, river, multi-way.
 - `preflop/solverImport` — JSON/CSV solver output → chart overrides (`/train/preflop/import`); imported
   spots replace the built-in charts everywhere (drills, coach, Play).
 

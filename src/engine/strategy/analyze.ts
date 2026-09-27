@@ -9,7 +9,7 @@ import type { Grade } from '../grading';
 import { formatPercent } from '../math';
 import { bluffBreakeven, minimumDefenseFrequency, potOdds } from '../odds';
 import { BUCKETS, BUCKET_NAMES, classifyHand, type HandInfo } from '../postflop/buckets';
-import { classifyRange, composition, continuingRange, streetOf, type Composition } from '../postflop/narrow';
+import { callingRange, classifyRange, composition, continuingRange, raisingRange, streetOf, type Composition } from '../postflop/narrow';
 import type { Spot } from '../postflop/scenario';
 import type { Range } from '../range';
 import { classifyBoard, type BoardTexture } from '../texture';
@@ -30,6 +30,14 @@ export interface OptionEval {
   foldPct?: number;
   /** Hero equity when called (bets/raises). */
   equityWhenCalled?: number;
+  /** Chance villain raises (check-raises) this bet/raise. */
+  raisePct?: number;
+  /** Villain's raise-to size (bb) if it raises. */
+  raiseTo?: number;
+  /** Hero equity against the raising range. */
+  equityVsRaise?: number;
+  /** Hero's best response if raised. */
+  vsRaise?: 'fold' | 'call';
   grade: Grade;
 }
 
@@ -73,12 +81,22 @@ function describeComposition(c: Composition): string {
     .join(', ');
 }
 
+/**
+ * Size of an action as the villain model reads it: the amount villain must call as a fraction of the
+ * pot before it (a bet of B into P is B/P; a raise to R over a bet of b is (R − b) / (P + 2b)).
+ */
+export function betFractionFacing(potBefore: number, villainIn: number, heroTotal: number): number {
+  return (heroTotal - villainIn) / (potBefore + 2 * villainIn);
+}
+
 export interface AnalyzeOptions {
   /** Bet sizes to offer as pot fractions (first-to-act spots). */
   sizes?: number[];
   seed?: number;
   /** Grade by c-bet rules instead of EV. */
   gradeBy?: 'cbet' | 'ev';
+  /** Raise sizes offered when facing a bet, as multiples of the bet (default [3]). */
+  raiseSizes?: number[];
 }
 
 export function analyzeSpot(spot: Spot, opts: AnalyzeOptions = {}): SpotAnalysis {
@@ -104,26 +122,125 @@ export function analyzeSpot(spot: Spot, opts: AnalyzeOptions = {}): SpotAnalysis
   const villainNutShare = comp.share.monster;
 
   const options: OptionEval[] = [];
-  const foldAndCallEquity = (fraction: number, sourceRanges: { combos: ReturnType<typeof classifyRange> }[]) => {
-    let fold = 1;
-    let expectedCallers = 0;
-    const cont: Range[] = [];
-    for (const { combos } of sourceRanges) {
-      const c = continuingRange(combos, fraction, forStreet(spot.model, street));
-      const kept = combos.reduce((s, x) => s + x.weight, 0);
-      const p = kept > 0 ? totalOf(c) / kept : 0;
-      fold *= 1 - p;
-      expectedCallers += p;
-      cont.push(c);
-    }
-    const anyContinue = cont.every((r) => totalOf(r) > 0.001);
-    // Average number of callers given that at least one calls (1 heads-up).
-    const callersWhenCalled = fold < 1 ? expectedCallers / (1 - fold) : 1;
-    return { fold, eq: anyContinue ? equityVs(spot, cont, seed + 1) : heroEquity, callers: Math.max(1, callersWhenCalled) };
-  };
-  const sources = spot.villains.map((_, i) => ({ combos: villainClassified[i]! }));
+  const sources = villainClassified;
+  const liveRanges = (rs: Range[]) => rs.filter((r) => totalOf(r) > 0.001);
+  let eqSeed = seed;
 
-  if (spot.facingBet !== null) {
+  /**
+   * EV of hero putting `amount` in this street (a bet, or a raise over villain's `villainIn`), with each
+   * villain folding, calling or raising per the model. If raised, hero takes the better of folding and
+   * calling. Raise sizes are 3× (all-in when that's most of the stack).
+   */
+  const aggressive = (amount: number, villainIn: number) => {
+    const allIn = amount >= stack;
+    const price = betFractionFacing(pot, villainIn, amount);
+    let fold = 1;
+    let noRaise = 1;
+    let expectedCallers = 0;
+    let noCall = 1;
+    const callRanges: Range[] = [];
+    const raiseRanges: { range: Range; p: number }[] = [];
+    for (const combos of sources) {
+      const total = combos.reduce((t, c) => t + c.weight, 0);
+      const m = forStreet(spot.model, street);
+      const callR = allIn ? continuingRange(combos, price, m) : callingRange(combos, price, m);
+      const raiseR = allIn ? null : raisingRange(combos, price, m);
+      const pc = total > 0 ? totalOf(callR) / total : 0;
+      const pr = total > 0 && raiseR ? totalOf(raiseR) / total : 0;
+      fold *= 1 - pc - pr;
+      noRaise *= 1 - pr;
+      noCall *= 1 - pc;
+      expectedCallers += pc;
+      callRanges.push(callR);
+      if (raiseR && pr > 0) raiseRanges.push({ range: raiseR, p: pr });
+    }
+    const pRaise = 1 - noRaise;
+    const pCall = Math.max(0, 1 - fold - pRaise);
+    const callers = noCall < 1 ? Math.max(1, expectedCallers / (1 - noCall)) : 1;
+    const live = liveRanges(callRanges);
+    const eqCall = live.length ? equityVs(spot, live, ++eqSeed) : heroEquity;
+    const evCalled = eqCall * (allIn ? 1 : realize) * (pot + amount * (1 + callers)) - amount;
+    let evRaised = 0;
+    let eqRaise: number | undefined;
+    let raiseTo: number | undefined;
+    let vsRaise: 'fold' | 'call' | undefined;
+    if (pRaise > 0.0005) {
+      raiseTo = Math.min(stack, amount * 3);
+      if (raiseTo >= 0.6 * stack) raiseTo = stack;
+      const totalP = raiseRanges.reduce((t, r) => t + r.p, 0);
+      eqRaise = raiseRanges.reduce((t, r) => t + r.p * equityVs(spot, [r.range], ++eqSeed), 0) / totalP;
+      const callRaise = eqRaise * (raiseTo >= stack ? 1 : realize) * (pot + 2 * raiseTo) - raiseTo;
+      vsRaise = callRaise > -amount ? 'call' : 'fold';
+      evRaised = Math.max(-amount, callRaise);
+    }
+    return {
+      ev: fold * (pot + villainIn) + pCall * evCalled + pRaise * evRaised,
+      fold,
+      eqCall,
+      raise: pRaise,
+      raiseTo,
+      eqRaise,
+      vsRaise,
+      allIn,
+    };
+  };
+  const aggressiveOption = (id: string, label: string, action: 'bet' | 'raise', amount: number, villainIn: number): OptionEval => {
+    const r = aggressive(amount, villainIn);
+    return {
+      id,
+      label,
+      action,
+      amount,
+      fraction: betFractionFacing(pot, villainIn, amount),
+      allIn: r.allIn,
+      ev: r.ev,
+      foldPct: r.fold,
+      equityWhenCalled: r.eqCall,
+      raisePct: r.raise > 0.0005 ? r.raise : undefined,
+      raiseTo: r.raiseTo,
+      equityVsRaise: r.eqRaise,
+      vsRaise: r.vsRaise,
+      grade: 'mistake',
+    };
+  };
+
+  if (spot.facingRaise) {
+    // Hero bet and villain raised (check-raised): fold, call, or move all-in.
+    const { heroBet, raiseTo } = spot.facingRaise;
+    const callAmt = Math.min(raiseTo, stack) - heroBet;
+    options.push({ id: 'fold', label: 'Fold', action: 'fold', amount: 0, fraction: null, allIn: false, ev: 0, grade: 'mistake' });
+    options.push({
+      id: 'call',
+      label: `Call ${bb(callAmt)}`,
+      action: 'call',
+      amount: callAmt,
+      fraction: null,
+      allIn: raiseTo >= stack,
+      ev: heroEquity * (raiseTo >= stack ? 1 : realize) * (pot + 2 * Math.min(raiseTo, stack)) - callAmt,
+      grade: 'mistake',
+    });
+    if (stack > raiseTo) {
+      // Villain can't raise an all-in: it folds or calls.
+      const price = betFractionFacing(pot, raiseTo, stack);
+      const combos = sources[0]!;
+      const total = combos.reduce((t, c) => t + c.weight, 0);
+      const cont = continuingRange(combos, price, forStreet(spot.model, street));
+      const pc = total > 0 ? totalOf(cont) / total : 0;
+      const eqJ = pc > 0 ? equityVs(spot, [cont], ++eqSeed) : heroEquity;
+      options.push({
+        id: 'jam',
+        label: `All-in ${bb(stack)}`,
+        action: 'raise',
+        amount: stack - heroBet,
+        fraction: price,
+        allIn: true,
+        ev: (1 - pc) * (pot + heroBet + raiseTo) + pc * (eqJ * (pot + 2 * stack) - (stack - heroBet)),
+        foldPct: 1 - pc,
+        equityWhenCalled: eqJ,
+        grade: 'mistake',
+      });
+    }
+  } else if (spot.facingBet !== null) {
     const b = spot.facingBet;
     options.push({ id: 'fold', label: 'Fold', action: 'fold', amount: 0, fraction: null, allIn: false, ev: 0, grade: 'mistake' });
     const callAmt = Math.min(b, stack);
@@ -134,26 +251,19 @@ export function analyzeSpot(spot: Spot, opts: AnalyzeOptions = {}): SpotAnalysis
       amount: callAmt,
       fraction: null,
       allIn: callAmt >= stack,
-      ev: heroEquity * realize * (pot + b + callAmt) - callAmt,
+      ev: heroEquity * (callAmt >= stack ? 1 : realize) * (pot + b + callAmt) - callAmt,
       grade: 'mistake',
     });
     if (stack > b) {
-      const raiseTo = Math.min(stack, b * 3);
-      const facing = (raiseTo - b) / (pot + b + raiseTo);
-      const { fold, eq } = foldAndCallEquity(facing, sources);
-      const allIn = raiseTo >= stack;
-      options.push({
-        id: 'raise',
-        label: allIn ? `All-in ${bb(raiseTo)}` : `Raise to ${bb(raiseTo)}`,
-        action: 'raise',
-        amount: raiseTo,
-        fraction: facing,
-        allIn,
-        ev: fold * (pot + b) + (1 - fold) * (eq * (allIn ? 1 : realize) * (pot + 2 * raiseTo) - raiseTo),
-        foldPct: fold,
-        equityWhenCalled: eq,
-        grade: 'mistake',
-      });
+      const seen = new Set<number>();
+      for (const mult of opts.raiseSizes ?? [3]) {
+        const raiseTo = Math.min(stack, Math.round(b * mult * 2) / 2);
+        if (seen.has(raiseTo)) continue;
+        seen.add(raiseTo);
+        const allIn = raiseTo >= stack;
+        const word = spot.heroIP ? 'Raise' : 'Check-raise';
+        options.push(aggressiveOption(`raise-${mult}`, allIn ? `All-in ${bb(raiseTo)}` : `${word} to ${bb(raiseTo)}`, 'raise', raiseTo, b));
+      }
     }
   } else {
     options.push({ id: 'check', label: 'Check', action: 'check', amount: 0, fraction: null, allIn: false, ev: heroEquity * realize * pot, grade: 'mistake' });
@@ -164,20 +274,9 @@ export function analyzeSpot(spot: Spot, opts: AnalyzeOptions = {}): SpotAnalysis
       if (seen.has(amount)) continue;
       seen.add(amount);
       const allIn = amount >= stack;
-      const fraction = amount / pot;
-      const { fold, eq, callers } = foldAndCallEquity(fraction, sources);
-      options.push({
-        id: `bet-${f}`,
-        label: allIn ? `All-in ${bb(amount)}` : `Bet ${bb(amount)} (${f >= 1 ? (f === 1 ? 'pot' : `${f}x pot`) : `${Math.round(f * 100)}%`})`,
-        action: 'bet',
-        amount,
-        fraction,
-        allIn,
-        ev: fold * pot + (1 - fold) * (eq * (allIn ? 1 : realize) * (pot + amount + callers * amount) - amount),
-        foldPct: fold,
-        equityWhenCalled: eq,
-        grade: 'mistake',
-      });
+      options.push(
+        aggressiveOption(`bet-${f}`, allIn ? `All-in ${bb(amount)}` : `Bet ${bb(amount)} (${f >= 1 ? (f === 1 ? 'pot' : `${f}x pot`) : `${Math.round(f * 100)}%`})`, 'bet', amount, 0),
+      );
     }
   }
 
@@ -186,7 +285,7 @@ export function analyzeSpot(spot: Spot, opts: AnalyzeOptions = {}): SpotAnalysis
   let why = '';
   const bestEv = Math.max(...options.map((o) => o.ev));
   const tol = RULES.evTolerance * pot;
-  if (opts.gradeBy === 'cbet' && spot.facingBet === null) {
+  if (opts.gradeBy === 'cbet' && spot.facingBet === null && !spot.facingRaise) {
     plan = cbetPlan(rangeEquity, heroNutShare - villainNutShare, texture.wetness);
     const rule = cbetHandRule(plan, hero, heroEquity);
     why = rule.why;
@@ -234,10 +333,18 @@ export function analyzeSpot(spot: Spot, opts: AnalyzeOptions = {}): SpotAnalysis
     steps.push(`Price: call / (pot + bet + call) = ${fmt(b)} / (${fmt(pot + b)} + ${fmt(b)}) = ${formatPercent(po.requiredEquity)}; you have ${formatPercent(heroEquity)}${street !== 'river' ? ` (× ${realize} realization ${spot.heroIP ? 'in position' : 'out of position'})` : ''}.`);
     steps.push(`MDF vs this bet: pot / (pot + bet) = ${formatPercent(minimumDefenseFrequency(pot, b))} of your range should continue.`);
   }
+  if (spot.facingRaise) {
+    const { heroBet, raiseTo } = spot.facingRaise;
+    const callAmt = Math.min(raiseTo, stack) - heroBet;
+    const po = potOdds(pot + heroBet + raiseTo, callAmt);
+    steps.push(`Price to call the raise: ${fmt(callAmt)} / (${fmt(pot + heroBet + raiseTo)} + ${fmt(callAmt)}) = ${formatPercent(po.requiredEquity)}; you have ${formatPercent(heroEquity)} vs the raising range.`);
+  }
   for (const o of options) {
     const parts = [`${o.label}: EV ≈ ${signedBb(o.ev)}`];
-    if (o.foldPct !== undefined) parts.push(`villain folds ${formatPercent(o.foldPct, 0)}${o.action === 'bet' ? ` (breakeven ${formatPercent(bluffBreakeven(pot, o.amount), 0)})` : ''}`);
+    if (o.foldPct !== undefined) parts.push(`${spot.villains.length > 1 && !spot.facingRaise ? 'everyone folds' : 'villain folds'} ${formatPercent(o.foldPct, 0)}${o.action === 'bet' ? ` (breakeven ${formatPercent(bluffBreakeven(pot, o.amount), 0)})` : ''}`);
     if (o.equityWhenCalled !== undefined) parts.push(`equity when called ${formatPercent(o.equityWhenCalled, 0)}`);
+    if (o.raisePct !== undefined && o.raisePct >= 0.005)
+      parts.push(`raised ${formatPercent(o.raisePct, 0)} to ${bb(o.raiseTo!)} (you have ${formatPercent(o.equityVsRaise!, 0)} vs raises → ${o.vsRaise})`);
     steps.push(parts.join(' · '));
   }
   if (spr <= RULES.commitment.committedSpr && (hero.bucket === 'monster' || hero.bucket === 'strong' || hero.strongDraw)) {
@@ -246,11 +353,15 @@ export function analyzeSpot(spot: Spot, opts: AnalyzeOptions = {}): SpotAnalysis
   else if (spr <= RULES.commitment.topPairSpr && (hero.bucket === 'monster' || hero.bucket === 'strong')) {
     steps.push(`Commitment: at SPR ${spr.toFixed(1)} (≤ ${RULES.commitment.topPairSpr}) top pair good kicker or better is usually committed — plan to get the stack in by the river.`);
   }
-  steps.push(`EVs are one-street estimates from the villain model (no raises${street !== 'river' ? `, equity realization ${realize}` : ''}).`);
+  steps.push(
+    `EVs are one-street estimates from the villain model: villains fold, call or raise (raises are 3×; if raised you fold or call)${street !== 'river' ? `, equity realization ${realize}` : ''}.`,
+  );
 
   const summary = plan
     ? `${best.label} is best. ${CBET_PLAN_TEXT[plan]} ${why}`
-    : spot.facingBet !== null
+    : spot.facingRaise
+      ? `${best.label} is best: you have ${formatPercent(heroEquity)} against the hands that raise here${best.action === 'fold' ? ', not enough for the price' : best.action === 'call' ? ', enough to continue' : ' — get the rest in'}.`
+      : spot.facingBet !== null
       ? `${best.label} is best: with ${formatPercent(heroEquity)} equity against villain's betting range, ${best.action === 'fold' ? 'the price is too high' : best.action === 'call' ? 'the price is right' : 'raising wins the most'}.`
       : `${best.label} has the highest EV (≈ ${signedBb(best.ev)}): ${hero.description.toLowerCase()} with ${formatPercent(heroEquity)} equity vs villain's range.`;
 
