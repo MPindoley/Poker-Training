@@ -3,8 +3,21 @@
   "name": "9-handed cash, 100bb",
   "description": "Close approximation of widely published solver-informed full-ring charts for 100bb cash games. Facing-open and facing-3-bet ranges reuse the 6-max charts, mapping early seats onto UTG. Not solver output — edit anything in the Range Editor.",
   "stackBb": 100,
-  "seats": ["UTG", "UTG+1", "MP", "LJ", "HJ", "CO", "BTN", "SB", "BB"],
-  "openSizeBb": { "default": 2.5, "SB": 3 },
+  "seats": [
+    "UTG",
+    "UTG+1",
+    "MP",
+    "LJ",
+    "HJ",
+    "CO",
+    "BTN",
+    "SB",
+    "BB"
+  ],
+  "openSizeBb": {
+    "default": 2.5,
+    "SB": 3
+  },
   "rfi": {
     "UTG": "66+, A9s+, A5s, KTs+, QTs+, JTs, AJo+, KQo",
     "UTG+1": "55+, A8s+, A5s-A4s, KTs+, QTs+, JTs, T9s, AJo+, KQo",
@@ -16,5 +29,19 @@
     "SB": "22+, A2s+, K2s+, Q3s+, J5s+, T6s+, 95s+, 85s+, 74s+, 64s+, 53s+, 43s, A2o+, K7o+, Q9o+, J9o+, T8o+, 98o"
   },
   "inherit": "cash-6max-100bb",
-  "seatAlias": { "UTG+1": "UTG", "MP": "UTG", "LJ": "UTG" }
+  "seatAlias": {
+    "UTG+1": "UTG",
+    "MP": "UTG",
+    "LJ": "UTG"
+  },
+  "groups": {
+    "UTG": "EP",
+    "UTG+1": "EP",
+    "MP": "MP",
+    "LJ": "MP",
+    "HJ": "MP"
+  },
+  "notes": {
+    "groups": "9-handed seats map onto the 6-max groups: UTG and UTG+1 are EP; MP, LJ and HJ are MP. Limper, squeeze, limp-raise and 4-bet ranges are inherited from the 6-max chart."
+  }
 }

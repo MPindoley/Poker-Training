@@ -6,13 +6,13 @@ Resume rule: work the first unchecked box. After each phase: `npm test`, `npm ru
 Baseline (before starting): 462 tests pass, typecheck clean, build OK.
 
 ## Phase 1: Home game preflop spots (limpers, squeezes, straddles)
-- [ ] Engine: spot kinds vsLimpers / squeeze / vsLimpRaise / vs4bet in charts.ts
-- [ ] Ranges for the new spots in all three chart JSON files (home-40bb most careful), with principle comments
-- [ ] Sizing: iso and squeeze sizes with reasons (reuse sizing.ts)
-- [ ] Straddle support (table setting, seat shift, straddler = "big blind" for spot purposes)
-- [ ] solverImport: new spot keys, parser, aliases, tests
-- [ ] reasons.ts: one-line reason for every new answer
-- [ ] Engine tests (coverage of seats/limper counts, combo counts, iso nesting, squeeze ⊆ 3-bet width, straddle shift, import round-trip)
+- [x] Engine: spot kinds vsLimpers / squeeze / vsLimpRaise / vs4bet in charts.ts
+- [x] Ranges for the new spots in all three chart JSON files (home-40bb most careful), with principle comments
+- [x] Sizing: iso and squeeze sizes with reasons (reuse sizing.ts)
+- [ ] Straddle support (table setting, seat shift, straddler = "big blind" for spot purposes) — engine mapping done (preflop/straddle.ts); table/game wiring pending
+- [x] solverImport: new spot keys, parser, aliases, tests
+- [x] reasons.ts: one-line reason for every new answer
+- [x] Engine tests (coverage of seats/limper counts, combo counts, iso nesting, squeeze ⊆ 3-bet width, straddle shift, import round-trip)
 - [ ] Drills preflop.limpers / preflop.squeeze / preflop.vs4bet + trainer screen, routes, skills, daily, warm-up (home weights limpers)
 - [ ] Range Editor and Paint the Range support new spots
 - [ ] Play: limping bots (station, efls, gambler); coach uses new charts
@@ -71,6 +71,12 @@ Baseline (before starting): 462 tests pass, typecheck clean, build OK.
 
 ## Decisions
 - Branched from the PR #2 branch (postflop section, not yet merged) because the stated 462-test baseline includes it. Merging this branch into main also brings in PR #2's changes.
+
+- New spot data lives in each chart JSON under `vsLimpers`, `squeeze`, `vsLimpRaise`, `vs4bet`, keyed by a seat **group** (`groups`: EP, MP, CO, BTN, SB, BB) so 9-handed seats reuse 6-max data. Limper counts are 1, 2, 3 (3 = 3+); squeeze callers 1, 2 (2 = 2+).
+- JSON has no comments, so each chart has a `notes` object with the principle behind every section (shown in the Range Editor).
+- vsLimpers actions: `raise` = iso-raise, `limp` = overlimp (complete from the SB). The BB's leftover action is `check`, not fold (`ActionRanges.rest`).
+- Limp-raise calls are kept inside the 1-limper overlimp range of the group, so they are valid for every seat in the group (a test enforces it).
+- Straddle mapping: each non-blind seat reads as the chart seat with the same number of players left to act (one seat tighter); both real blinds read as SB; the straddler reads as BB; stacks are measured in straddles.
 
 ## Open questions for Matt
 

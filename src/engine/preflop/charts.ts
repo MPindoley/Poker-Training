@@ -15,6 +15,20 @@ export interface Facing3betJson {
   call: string;
 }
 
+/** Actions vs limpers: iso-raise (`raise`) or overlimp (`limp`; completing from the SB). */
+export interface VsLimpersJson {
+  raise: string;
+  limp: string;
+}
+export interface SqueezeJson {
+  '3bet': string;
+  call: string;
+}
+export interface Facing4betJson {
+  '5bet': string;
+  call: string;
+}
+
 export interface ChartJson {
   id: string;
   name: string;
@@ -29,10 +43,29 @@ export interface ChartJson {
   inherit?: string;
   /** Seat -> key used for vsOpen / vs3bet lookups (e.g. MP -> UTG, or HJ -> LP). */
   seatAlias?: Record<string, string>;
+  /**
+   * Seat -> group used by the home-game spots below (EP, MP, CO, BTN, SB, BB). Seats not listed use
+   * their own name. Inherited charts keep their own `groups` so 9-handed seats map onto 6-max data.
+   */
+  groups?: Record<string, string>;
+  /** Hero acts after limpers (no raise yet). Keyed by group, then limper count "1", "2" or "3" (3 = 3+). */
+  vsLimpers?: Record<string, Record<string, VsLimpersJson>>;
+  /** An open plus callers before hero. Keyed by group, then callers "1" or "2" (2 = 2+). */
+  squeeze?: Record<string, Record<string, SqueezeJson>>;
+  /** Hero limped (or overlimped) and someone raised behind. Keyed by group. */
+  vsLimpRaise?: Record<string, SqueezeJson>;
+  /** Hero 3-bet and faces a 4-bet. Keyed by group. */
+  vs4bet?: Record<string, Facing4betJson>;
+  /** Plain-English notes explaining the assumptions behind each section (JSON has no comments). */
+  notes?: Record<string, string>;
 }
 
-export type SpotKind = 'rfi' | 'vsOpen' | 'vs3bet';
-export type PreflopAction = 'raise' | 'limp' | 'fold' | 'call' | '3bet' | '4bet';
+export type SpotKind = 'rfi' | 'vsOpen' | 'vs3bet' | 'vsLimpers' | 'squeeze' | 'vsLimpRaise' | 'vs4bet';
+export type PreflopAction = 'raise' | 'limp' | 'fold' | 'call' | '3bet' | '4bet' | '5bet' | 'check';
+
+/** Limper counts are bucketed 1, 2, 3+ and squeeze callers 1, 2+. */
+export const limperKey = (n: number) => String(Math.min(3, Math.max(1, Math.floor(n))));
+export const callerKey = (n: number) => String(Math.min(2, Math.max(1, Math.floor(n))));
 
 export interface PreflopSpot {
   kind: SpotKind;
@@ -40,6 +73,10 @@ export interface PreflopSpot {
   seat: string;
   /** The opener (vsOpen) or the 3-bettor's side is implied (vs3bet). */
   opener?: string;
+  /** Limpers before hero (vsLimpers). */
+  limpers?: number;
+  /** Callers of the open before hero (squeeze). */
+  callers?: number;
 }
 
 export interface ActionRanges {
@@ -49,6 +86,8 @@ export interface ActionRanges {
   notation: Partial<Record<PreflopAction, string>>;
   /** Path used for overrides, e.g. "rfi.UTG" or "vsOpen.BB.UTG". */
   path: string;
+  /** What hands outside every range do: fold (default), or check (big blind vs limpers). */
+  rest?: PreflopAction;
 }
 
 const parseCache = new Map<string, Range>();
@@ -109,6 +148,91 @@ export class Chart {
     return this.json.vs3bet ?? (this.json.inherit ? this.library[this.json.inherit]?.vs3bet : undefined);
   }
 
+  /** A chart section, from this chart or the one it inherits from. */
+  private section<K extends 'vsLimpers' | 'squeeze' | 'vsLimpRaise' | 'vs4bet'>(key: K): ChartJson[K] {
+    return this.json[key] ?? (this.json.inherit ? this.library[this.json.inherit]?.[key] : undefined);
+  }
+
+  /** Seat group for the home-game spots (EP, MP, CO, BTN, SB, BB). */
+  group(seat: string): string {
+    return this.json.groups?.[seat] ?? seat;
+  }
+
+  /** Players who act before `seat` preflop (limpers or openers/callers can only come from them). */
+  seatsBefore(seat: string): number {
+    return Math.max(0, this.json.seats.indexOf(seat));
+  }
+
+  private build(path: string, pairs: [PreflopAction, string][], rest?: PreflopAction): ActionRanges {
+    const ranges: ActionRanges['ranges'] = {};
+    const notation: ActionRanges['notation'] = {};
+    for (const [action, fallback] of pairs) {
+      const t = this.text(path, action, fallback);
+      ranges[action] = cachedRange(t);
+      notation[action] = t;
+    }
+    return rest ? { ranges, notation, path, rest } : { ranges, notation, path };
+  }
+
+  /** Hero in `seat` after `limpers` limpers (no raise). SB can complete; BB checks its option. */
+  vsLimpers(seat: string, limpers: number): ActionRanges | null {
+    if (limpers < 1 || this.seatsBefore(seat) < Math.min(limpers, 3)) return null;
+    const g = this.group(seat);
+    const n = limperKey(limpers);
+    const j = this.section('vsLimpers')?.[g]?.[n];
+    if (!j) return null;
+    return this.build(`vsLimpers.${g}.${n}`, [['raise', j.raise], ['limp', j.limp]], seat === 'BB' ? 'check' : undefined);
+  }
+
+  /** An open and `callers` callers before hero in `seat`. */
+  squeeze(seat: string, callers: number): ActionRanges | null {
+    if (callers < 1 || this.seatsBefore(seat) < Math.min(callers, 2) + 1) return null;
+    const g = this.group(seat);
+    const n = callerKey(callers);
+    const j = this.section('squeeze')?.[g]?.[n];
+    if (!j) return null;
+    return this.build(`squeeze.${g}.${n}`, [['3bet', j['3bet']], ['call', j.call]]);
+  }
+
+  /** Hero limped from `seat` and faces a raise. */
+  vsLimpRaise(seat: string): ActionRanges | null {
+    if (seat === 'BB' || this.seatsBefore(seat) < 1) return null;
+    const g = this.group(seat);
+    const j = this.section('vsLimpRaise')?.[g];
+    if (!j) return null;
+    return this.build(`vsLimpRaise.${g}`, [['3bet', j['3bet']], ['call', j.call]]);
+  }
+
+  /** Hero 3-bet from `seat` and faces a 4-bet. */
+  vs4bet(seat: string): ActionRanges | null {
+    if (this.seatsBefore(seat) < 1) return null;
+    const g = this.group(seat);
+    const j = this.section('vs4bet')?.[g];
+    if (!j) return null;
+    return this.build(`vs4bet.${g}`, [['5bet', j['5bet']], ['call', j.call]]);
+  }
+
+  /** Every (seat, limpers) pair with data. */
+  limperSpots(): { seat: string; limpers: number }[] {
+    const out: { seat: string; limpers: number }[] = [];
+    for (const seat of this.json.seats) for (const n of [1, 2, 3]) if (this.vsLimpers(seat, n)) out.push({ seat, limpers: n });
+    return out;
+  }
+
+  squeezeSpots(): { seat: string; callers: number }[] {
+    const out: { seat: string; callers: number }[] = [];
+    for (const seat of this.json.seats) for (const n of [1, 2]) if (this.squeeze(seat, n)) out.push({ seat, callers: n });
+    return out;
+  }
+
+  limpRaiseSeats(): string[] {
+    return this.json.seats.filter((s) => this.vsLimpRaise(s));
+  }
+
+  facing4betSeats(): string[] {
+    return this.json.seats.filter((s) => this.vs4bet(s));
+  }
+
   private text(path: string, action: string, fallback: string): string {
     return this.overrides[`${path}.${action}`] ?? fallback;
   }
@@ -147,9 +271,22 @@ export class Chart {
   }
 
   spot(s: PreflopSpot): ActionRanges | null {
-    if (s.kind === 'rfi') return this.rfi(s.seat);
-    if (s.kind === 'vsOpen') return this.vsOpen(s.seat, s.opener ?? '');
-    return this.vs3bet(s.seat);
+    switch (s.kind) {
+      case 'rfi':
+        return this.rfi(s.seat);
+      case 'vsOpen':
+        return this.vsOpen(s.seat, s.opener ?? '');
+      case 'vs3bet':
+        return this.vs3bet(s.seat);
+      case 'vsLimpers':
+        return this.vsLimpers(s.seat, s.limpers ?? 1);
+      case 'squeeze':
+        return this.squeeze(s.seat, s.callers ?? 1);
+      case 'vsLimpRaise':
+        return this.vsLimpRaise(s.seat);
+      case 'vs4bet':
+        return this.vs4bet(s.seat);
+    }
   }
 
   /** Every valid (defender, opener) pair this chart has data for. */
@@ -185,8 +322,9 @@ export function strategyFor(spot: ActionRanges, label: string): HandStrategy {
     freq[action] = f;
     used += f;
   }
-  freq.fold = Math.max(0, 1 - used);
-  let main: PreflopAction = 'fold';
+  const rest = spot.rest ?? 'fold';
+  freq[rest] = Math.max(0, 1 - used);
+  let main: PreflopAction = rest;
   for (const [a, f] of Object.entries(freq) as [PreflopAction, number][]) if (f > (freq[main] ?? 0) + 1e-9) main = a;
   return { freq, main };
 }

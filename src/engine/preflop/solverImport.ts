@@ -11,8 +11,11 @@
  *   rfi.CO,AKs,raise,1
  *   vsOpen.BB.BTN,A5s,3bet,40%
  *
- * Spots: rfi.SEAT, vsOpen.HERO.OPENER, vs3bet.SEAT. Actions: raise (rfi), 3bet/call (vsOpen),
- * 4bet/call (vs3bet). "fold" rows are ignored (fold is whatever is left).
+ * Spots: rfi.SEAT, vsOpen.HERO.OPENER, vs3bet.SEAT, vsLimpers.SEAT.N (N = 1, 2, 3 or 3+ limpers),
+ * squeeze.SEAT.N (N = 1 or 2+ callers), vsLimpRaise.SEAT, vs4bet.SEAT. SEAT may also be a seat group
+ * (EP, MP, CO, BTN, SB, BB). Actions: raise (rfi), 3bet/call (vsOpen, squeeze, vsLimpRaise),
+ * 4bet/call (vs3bet), raise/limp (vsLimpers: iso-raise / overlimp or complete), 5bet/call (vs4bet).
+ * "fold" and "check" rows are ignored (they are whatever is left).
  */
 import { parseCardIndices } from '../cards';
 import { HAND_GRID } from '../hands';
@@ -28,8 +31,48 @@ export interface SolverImportResult {
   errors: string[];
 }
 
-const ACTIONS: Record<string, readonly PreflopAction[]> = { rfi: ['raise'], vsOpen: ['3bet', 'call'], vs3bet: ['4bet', 'call'] };
-const ACTION_ALIASES: Record<string, string> = { open: 'raise', r: 'raise', bet: 'raise', '3b': '3bet', threebet: '3bet', '4b': '4bet', fourbet: '4bet', c: 'call', f: 'fold' };
+const ACTIONS: Record<string, readonly PreflopAction[]> = {
+  rfi: ['raise'],
+  vsOpen: ['3bet', 'call'],
+  vs3bet: ['4bet', 'call'],
+  vsLimpers: ['raise', 'limp'],
+  squeeze: ['3bet', 'call'],
+  vsLimpRaise: ['3bet', 'call'],
+  vs4bet: ['5bet', 'call'],
+};
+const ACTION_ALIASES: Record<string, string> = {
+  open: 'raise',
+  r: 'raise',
+  bet: 'raise',
+  iso: 'raise',
+  isolate: 'raise',
+  'iso-raise': 'raise',
+  overlimp: 'limp',
+  complete: 'limp',
+  l: 'limp',
+  '3b': '3bet',
+  '3-bet': '3bet',
+  threebet: '3bet',
+  squeeze: '3bet',
+  '4b': '4bet',
+  '4-bet': '4bet',
+  fourbet: '4bet',
+  '5b': '5bet',
+  '5-bet': '5bet',
+  fivebet: '5bet',
+  jam: '5bet',
+  allin: '5bet',
+  'all-in': '5bet',
+  c: 'call',
+  f: 'fold',
+  x: 'check',
+};
+
+/** A chart seat for a seat name or a seat group (EP, MP, …): the first seat in that group. */
+function seatFor(chart: Chart, name: string): string | null {
+  if (chart.seats.includes(name)) return name;
+  return chart.seats.find((s) => chart.group(s) === name && chart.seatsBefore(s) > 0) ?? chart.seats.find((s) => chart.group(s) === name) ?? null;
+}
 const CLASS_LABELS = new Set(HAND_GRID.flat().map((h) => h.label));
 
 /** Resolve a spot name against a chart to its canonical override path (applies seat aliases). */
@@ -43,6 +86,36 @@ export function resolveSpotPath(chart: Chart, spot: string): { path: string; kin
   if (kind === 'vs3bet' && a) {
     const s = chart.vs3bet(a);
     return s ? { path: s.path, kind } : null;
+  }
+  const seat = a ? seatFor(chart, a) : null;
+  if (!seat) return null;
+  const count = (t: string | undefined) => (t && /^\d\+?$/.test(t) ? Number(t.replace('+', '')) : NaN);
+  if (kind === 'vsLimpers' && b) {
+    // Group keys need a seat with enough players before it; try the group's seats in turn.
+    const n = count(b);
+    const seats = chart.seats.filter((x) => x === a || chart.group(x) === a);
+    for (const x of seats) {
+      const sp = chart.vsLimpers(x, n);
+      if (sp) return { path: sp.path, kind };
+    }
+    return null;
+  }
+  if (kind === 'squeeze' && b) {
+    const n = count(b);
+    const seats = chart.seats.filter((x) => x === a || chart.group(x) === a);
+    for (const x of seats) {
+      const sp = chart.squeeze(x, n);
+      if (sp) return { path: sp.path, kind };
+    }
+    return null;
+  }
+  if (kind === 'vsLimpRaise') {
+    const sp = chart.vsLimpRaise(seat);
+    return sp ? { path: sp.path, kind } : null;
+  }
+  if (kind === 'vs4bet') {
+    const sp = chart.vs4bet(seat);
+    return sp ? { path: sp.path, kind } : null;
   }
   return null;
 }
@@ -164,7 +237,7 @@ export function importSolverOutput(text: string, charts: Record<string, Chart>, 
       continue;
     }
     const action = normAction(row.action);
-    if (action === 'fold') continue;
+    if (action === 'fold' || action === 'check') continue;
     if (!ACTIONS[spot.kind]!.includes(action as PreflopAction)) {
       result.errors.push(`${row.line}: action "${row.action}" doesn't exist in ${spot.kind} spots (use ${ACTIONS[spot.kind]!.join('/')}).`);
       continue;

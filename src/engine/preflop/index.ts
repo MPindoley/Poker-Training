@@ -6,3 +6,4 @@ export * from './reasons';
 export * from './drills';
 export * from './ranking';
 export * from './solverImport';
+export * from './straddle';

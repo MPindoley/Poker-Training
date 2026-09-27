@@ -3,8 +3,21 @@
   "name": "Home game, ~40bb (loose-passive)",
   "description": "Adjusted for a loose-passive home game about 40bb deep: slightly tighter opens (pots go multi-way), bigger open sizes, fewer light 3-bet bluffs and more value 3-bets. 4-bets are effectively all-ins. An approximation — edit anything in the Range Editor.",
   "stackBb": 40,
-  "seats": ["UTG", "UTG+1", "MP", "LJ", "HJ", "CO", "BTN", "SB", "BB"],
-  "openSizeBb": { "default": 4, "SB": 4 },
+  "seats": [
+    "UTG",
+    "UTG+1",
+    "MP",
+    "LJ",
+    "HJ",
+    "CO",
+    "BTN",
+    "SB",
+    "BB"
+  ],
+  "openSizeBb": {
+    "default": 4,
+    "SB": 4
+  },
   "rfi": {
     "UTG": "77+, ATs+, A5s, KTs+, QJs, AJo+, KQo",
     "UTG+1": "66+, A9s+, A5s, KTs+, QTs+, JTs, AJo+, KQo",
@@ -15,25 +28,259 @@
     "BTN": "22+, A2s+, K5s+, Q7s+, J7s+, T7s+, 96s+, 86s+, 75s+, 64s+, 54s, A7o+, A5o, K9o+, Q9o+, J9o+, T9o",
     "SB": "22+, A2s+, K6s+, Q8s+, J8s+, T8s+, 97s+, 86s+, 76s, 65s, A8o+, KTo+, QTo+, JTo"
   },
-  "seatAlias": { "UTG": "EP", "UTG+1": "EP", "MP": "EP", "LJ": "EP", "HJ": "LP", "CO": "LP", "BTN": "LP" },
+  "seatAlias": {
+    "UTG": "EP",
+    "UTG+1": "EP",
+    "MP": "EP",
+    "LJ": "EP",
+    "HJ": "LP",
+    "CO": "LP",
+    "BTN": "LP"
+  },
   "vsOpen": {
     "LP": {
-      "EP": { "3bet": "QQ+, AKs, AKo", "call": "66-JJ, AJs-AQs, KQs" },
-      "LP": { "3bet": "TT+, AQs+, AKo", "call": "22-99, ATs-AJs, KJs+, QJs, JTs, T9s, 98s, AJo-AQo, KQo" }
+      "EP": {
+        "3bet": "QQ+, AKs, AKo",
+        "call": "66-JJ, AJs-AQs, KQs"
+      },
+      "LP": {
+        "3bet": "TT+, AQs+, AKo",
+        "call": "22-99, ATs-AJs, KJs+, QJs, JTs, T9s, 98s, AJo-AQo, KQo"
+      }
     },
     "SB": {
-      "EP": { "3bet": "TT+, AQs+, AKo", "call": "" },
-      "LP": { "3bet": "99+, AJs+, KQs, AQo+", "call": "" }
+      "EP": {
+        "3bet": "TT+, AQs+, AKo",
+        "call": ""
+      },
+      "LP": {
+        "3bet": "99+, AJs+, KQs, AQo+",
+        "call": ""
+      }
     },
     "BB": {
-      "EP": { "3bet": "TT+, AQs+, AKo", "call": "22-99, A2s-AJs, KTs+, QTs+, JTs, T9s, 98s, 87s, 76s, AJo-AQo, KQo" },
-      "LP": { "3bet": "99+, AJs+, AQo+, KQs", "call": "22-88, A2s-ATs, K8s-KJs, Q9s+, J9s+, T8s+, 97s+, 86s+, 75s+, 65s, 54s, A9o-AJo, KTo+, QTo+, JTo" },
-      "SB": { "3bet": "88+, ATs+, AJo+, KQs", "call": "22-77, A2s-A9s, K5s-KJs, Q7s+, J8s+, T8s+, 97s+, 86s+, 75s+, 64s+, 54s, A5o-ATo, K9o+, Q9o+, J9o+, T9o" }
+      "EP": {
+        "3bet": "TT+, AQs+, AKo",
+        "call": "22-99, A2s-AJs, KTs+, QTs+, JTs, T9s, 98s, 87s, 76s, AJo-AQo, KQo"
+      },
+      "LP": {
+        "3bet": "99+, AJs+, AQo+, KQs",
+        "call": "22-88, A2s-ATs, K8s-KJs, Q9s+, J9s+, T8s+, 97s+, 86s+, 75s+, 65s, 54s, A9o-AJo, KTo+, QTo+, JTo"
+      },
+      "SB": {
+        "3bet": "88+, ATs+, AJo+, KQs",
+        "call": "22-77, A2s-A9s, K5s-KJs, Q7s+, J8s+, T8s+, 97s+, 86s+, 75s+, 64s+, 54s, A5o-ATo, K9o+, Q9o+, J9o+, T9o"
+      }
     }
   },
   "vs3bet": {
-    "EP": { "4bet": "JJ+, AKs, AKo, AQs", "call": "99-TT, AJs, KQs" },
-    "LP": { "4bet": "TT+, AQs+, AKo, AQo@50", "call": "77-99, ATs-AJs, KQs, AJo@50" },
-    "SB": { "4bet": "TT+, AQs+, AKo, AQo@50", "call": "77-99, ATs-AJs, KQs" }
+    "EP": {
+      "4bet": "JJ+, AKs, AKo, AQs",
+      "call": "99-TT, AJs, KQs"
+    },
+    "LP": {
+      "4bet": "TT+, AQs+, AKo, AQo@50",
+      "call": "77-99, ATs-AJs, KQs, AJo@50"
+    },
+    "SB": {
+      "4bet": "TT+, AQs+, AKo, AQo@50",
+      "call": "77-99, ATs-AJs, KQs"
+    }
+  },
+  "groups": {
+    "UTG": "EP",
+    "UTG+1": "EP",
+    "MP": "MP",
+    "LJ": "MP",
+    "HJ": "MP"
+  },
+  "vsLimpers": {
+    "EP": {
+      "1": {
+        "raise": "77+, ATs+, KJs+, QJs, AJo+, KQo",
+        "limp": "22-66, A2s-A9s, KTs, QTs, JTs, T9s, 98s"
+      },
+      "2": {
+        "raise": "88+, AJs+, KQs, AQo+",
+        "limp": "22-77, A2s-ATs, KTs-KJs, QTs+, JTs, T9s, 98s, 87s"
+      },
+      "3": {
+        "raise": "99+, AQs+, AKo",
+        "limp": "22-88, A2s-AJs, KTs+, QTs+, JTs, T9s, 98s, 87s, 76s"
+      }
+    },
+    "MP": {
+      "1": {
+        "raise": "66+, A9s+, KTs+, QTs+, JTs, ATo+, KJo+",
+        "limp": "22-55, A2s-A8s, K9s, Q9s, J9s, T9s, 98s, 87s, 76s"
+      },
+      "2": {
+        "raise": "77+, ATs+, KJs+, QJs, AJo+, KQo",
+        "limp": "22-66, A2s-A9s, K9s-KTs, Q9s-QTs, J9s+, T9s, 98s, 87s, 76s, 65s"
+      },
+      "3": {
+        "raise": "88+, AJs+, KQs, AQo+",
+        "limp": "22-77, A2s-ATs, K9s-KJs, Q9s+, J9s+, T8s+, 98s, 87s, 76s, 65s, 54s"
+      }
+    },
+    "CO": {
+      "1": {
+        "raise": "55+, A8s+, A5s, KTs+, QTs+, JTs, ATo+, KJo+, QJo",
+        "limp": "22-44, A2s-A4s, A6s-A7s, K8s-K9s, Q9s, J9s, T8s+, 97s+, 86s+, 75s+, 65s, 54s"
+      },
+      "2": {
+        "raise": "66+, A9s+, KTs+, QJs, AJo+, KQo",
+        "limp": "22-55, A2s-A8s, K8s-K9s, Q9s-QTs, J9s+, T8s+, 97s+, 86s+, 75s+, 64s+, 54s"
+      },
+      "3": {
+        "raise": "77+, ATs+, KJs+, AQo+",
+        "limp": "22-66, A2s-A9s, K8s-KTs, Q9s+, J9s+, T8s+, 97s+, 86s+, 75s+, 64s+, 54s, 43s"
+      }
+    },
+    "BTN": {
+      "1": {
+        "raise": "44+, A7s+, A5s-A4s, K9s+, QTs+, JTs, A9o+, KTo+, QJo",
+        "limp": "22-33, A2s-A3s, A6s, K5s-K8s, Q8s-Q9s, J8s-J9s, T8s+, 97s+, 86s+, 75s+, 64s+, 54s"
+      },
+      "2": {
+        "raise": "55+, A9s+, A5s, KTs+, QJs, ATo+, KJo+",
+        "limp": "22-44, A2s-A4s, A6s-A8s, K6s-K9s, Q8s-QTs, J8s+, T8s+, 97s+, 86s+, 75s+, 64s+, 53s+, 43s"
+      },
+      "3": {
+        "raise": "77+, ATs+, KJs+, AJo+, KQo",
+        "limp": "22-66, A2s-A9s, K6s-KTs, Q8s+, J8s+, T8s+, 97s+, 86s+, 75s+, 64s+, 53s+, 43s"
+      }
+    },
+    "SB": {
+      "1": {
+        "raise": "66+, A9s+, KTs+, QJs, ATo+, KJo+",
+        "limp": "22-55, A2s-A8s, K2s-K9s, Q5s-QTs, J7s+, T7s+, 96s+, 85s+, 74s+, 63s+, 53s+, 43s, A2o-A9o, K8o-KTo, Q9o+, J9o+, T9o"
+      },
+      "2": {
+        "raise": "77+, ATs+, KJs+, AJo+, KQo",
+        "limp": "22-66, A2s-A9s, K2s-KTs, Q5s+, J7s+, T7s+, 96s+, 85s+, 74s+, 63s+, 53s+, 43s, A2o-ATo, K9o-KJo, Q9o+, J9o+, T9o"
+      },
+      "3": {
+        "raise": "88+, AJs+, KQs, AQo+",
+        "limp": "22-77, A2s-ATs, K2s-KJs, Q5s+, J7s+, T7s+, 96s+, 85s+, 74s+, 63s+, 53s+, 43s, A2o-AJo, K9o+, Q9o+, J9o+, T9o"
+      }
+    },
+    "BB": {
+      "1": {
+        "raise": "77+, ATs+, KJs+, AJo+, KQo",
+        "limp": ""
+      },
+      "2": {
+        "raise": "88+, AJs+, KQs, AQo+",
+        "limp": ""
+      },
+      "3": {
+        "raise": "99+, AQs+, AKo",
+        "limp": ""
+      }
+    }
+  },
+  "squeeze": {
+    "MP": {
+      "1": {
+        "3bet": "QQ+, AKs, AKo",
+        "call": "88-JJ, AQs, KQs"
+      },
+      "2": {
+        "3bet": "QQ+, AKs, AKo",
+        "call": "77-JJ, AJs-AQs, KQs, JTs"
+      }
+    },
+    "CO": {
+      "1": {
+        "3bet": "JJ+, AQs+, AKo",
+        "call": "66-TT, ATs-AJs, KJs+, QJs, JTs"
+      },
+      "2": {
+        "3bet": "QQ+, AKs, AKo",
+        "call": "55-JJ, ATs-AQs, KJs+, QJs, JTs, T9s"
+      }
+    },
+    "BTN": {
+      "1": {
+        "3bet": "JJ+, AQs+, AKo, A5s",
+        "call": "55-TT, ATs-AJs, KTs+, QTs+, JTs, T9s, 98s"
+      },
+      "2": {
+        "3bet": "QQ+, AKs, AKo, AQs",
+        "call": "22-JJ, A9s-AJs, KTs+, QTs+, JTs, T9s, 98s, 87s"
+      }
+    },
+    "SB": {
+      "1": {
+        "3bet": "JJ+, AQs+, AKo",
+        "call": "77-TT, AJs, KQs"
+      },
+      "2": {
+        "3bet": "QQ+, AKs, AKo",
+        "call": "66-JJ, ATs-AQs, KQs"
+      }
+    },
+    "BB": {
+      "1": {
+        "3bet": "JJ+, AQs+, AKo",
+        "call": "22-TT, A2s-AJs, K9s+, Q9s+, J9s+, T8s+, 98s, 87s, 76s, 65s, AJo-AQo, KQo"
+      },
+      "2": {
+        "3bet": "QQ+, AKs, AKo",
+        "call": "22-JJ, A2s-AQs, K9s+, Q9s+, J9s+, T8s+, 97s+, 87s, 76s, 65s, 54s, AQo, KQo"
+      }
+    }
+  },
+  "vsLimpRaise": {
+    "EP": {
+      "3bet": "",
+      "call": "55-66, A9s, KTs, QTs, JTs, T9s"
+    },
+    "MP": {
+      "3bet": "",
+      "call": "44-55, A8s, T9s, 98s"
+    },
+    "CO": {
+      "3bet": "",
+      "call": "33-44, A7s, K9s, Q9s, J9s, T9s, 98s"
+    },
+    "BTN": {
+      "3bet": "",
+      "call": "22-33, A6s, K8s, Q9s, J9s, T9s, 98s, 87s"
+    },
+    "SB": {
+      "3bet": "",
+      "call": "44-55, A7s-A8s, K9s, QTs, JTs, T9s, A9o, KTo"
+    }
+  },
+  "vs4bet": {
+    "MP": {
+      "5bet": "QQ+, AKs, AKo",
+      "call": ""
+    },
+    "CO": {
+      "5bet": "JJ+, AKs, AKo, AQs",
+      "call": ""
+    },
+    "BTN": {
+      "5bet": "JJ+, AKs, AKo, AQs",
+      "call": ""
+    },
+    "SB": {
+      "5bet": "JJ+, AQs+, AKo",
+      "call": ""
+    },
+    "BB": {
+      "5bet": "JJ+, AQs+, AKo",
+      "call": ""
+    }
+  },
+  "notes": {
+    "groups": "Seat groups for the limper, squeeze, limp-raise and 4-bet spots: EP (first seats), MP (middle), CO, BTN, SB, BB. More players behind = tighter.",
+    "vsLimpers": "raise = iso-raise, limp = overlimp (complete from the SB), anything else folds (the big blind checks). Iso-raise hands that play well heads-up with the initiative and dominate limping ranges: pairs, strong broadways, strong suited aces. Overlimp hands that want a cheap multi-way flop: small pairs (sets), suited connectors and suited aces (nut draws), especially late and with more limpers. Fold offsuit hands that flop weak one-pair hands multi-way (KTo, QJo from early seats). The iso range gets tighter as limpers increase (key 3 = 3 or more limpers). Home game 40bb, loose-passive: limpers call iso-raises too often, so iso for value with hands that dominate them (6x+ pairs, strong broadways, strong suited aces) and size up: 4bb + 1bb per limper.",
+    "squeeze": "An open plus callers before you. Squeeze sizes come from sizing.ts (about 3x the open + 1 open per caller in position, 4x + 1 per caller out of position). Calls favour hands that play well multi-way. Home game: squeeze for value with very few bluffs, because loose-passive players call too much.",
+    "vsLimpRaise": "You limped and someone raised behind. Limping ranges contain few strong hands, so most limps fold; the calls are hands that play well in a multi-way pot. This spot mostly teaches that limp-calling is weak.",
+    "vs4bet": "You 3-bet and face a 4-bet. 5bet = all-in. At 40bb a 4-bet commits most of the stack, so it is jam or fold (no flatting)."
   }
 }
