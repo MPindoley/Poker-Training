@@ -15,19 +15,22 @@ import type { Difficulty, Question, StrategyVisual } from '../drills/types';
 import { actionStats, strategyFor, strategyGrid, type ActionRanges, type Chart, type PreflopAction } from './charts';
 import { HAND_GROUP_NAMES, handGroup } from './groups';
 import { ACTION_NAMES, preflopReason } from './reasons';
-import { bigBlindPrice, sizingRule, type GameMode } from './sizing';
+import { bigBlindPrice, isoSize, sizingRule, squeezeSize, type GameMode } from './sizing';
+import { potOdds } from '../odds';
 
 export const ACTION_COLORS: Record<string, string> = {
   raise: '#e5383b',
   '3bet': '#e5383b',
   '4bet': '#8b4ae8',
+  '5bet': '#8b4ae8',
   call: '#22b35e',
   limp: '#f5b820',
+  check: '#2f7fe8',
 };
 
-function visualFor(spot: ActionRanges, highlight: string, caption: string): StrategyVisual {
+function visualFor(spot: ActionRanges, highlight: string, caption: string, names: Partial<Record<PreflopAction, string>> = {}): StrategyVisual {
   const grid = strategyGrid(spot);
-  const actions = Object.keys(spot.ranges).map((id) => ({ id, label: ACTION_NAMES[id as PreflopAction], color: ACTION_COLORS[id] ?? '#2f7fe8' }));
+  const actions = Object.keys(spot.ranges).map((id) => ({ id, label: names[id as PreflopAction] ?? ACTION_NAMES[id as PreflopAction], color: ACTION_COLORS[id] ?? '#2f7fe8' }));
   return {
     kind: 'strategy',
     cells: Object.fromEntries(Object.entries(grid).map(([k, v]) => [k, v.freq])),
@@ -309,6 +312,117 @@ function defenseQuestion(ctx: PreflopDrillContext, rng: Rng, difficulty: Difficu
 }
 
 // ---------------------------------------------------------------------------
+// Home-game spots: limpers, limp-raises, squeezes and 4-bets
+
+type HomeKind = 'vsLimpers' | 'vsLimpRaise' | 'squeeze' | 'vs4bet';
+
+const pickFrom = <T>(rng: Rng, items: readonly T[]): T => items[Math.floor(rng() * items.length)]!;
+const bbs = (x: number) => `${round(x)}bb`;
+
+function homeSpotQuestion(ctx: PreflopDrillContext, rng: Rng, difficulty: Difficulty, variant: string, id: string, drillKind: string): Question {
+  const { chart } = ctx;
+  const [code, seat, countText] = variant.split(':') as [string, string, string?];
+  const count = Number(countText ?? 1);
+  const kind: HomeKind = code === 'lim' ? 'vsLimpers' : code === 'lr' ? 'vsLimpRaise' : code === 'sq' ? 'squeeze' : 'vs4bet';
+  const spot = chart.spot({ kind, seat, limpers: count, callers: count });
+  if (!spot) throw new Error(`No chart data for ${variant}`);
+  const label = pickHand(rng, spot, difficulty, ctx.skills);
+  const strat = strategyFor(spot, label);
+  const mode: GameMode = chart.id.startsWith('home') ? 'home' : 'casino';
+  const before = chart.seats.slice(0, chart.seats.indexOf(seat));
+  const inPosition = seat !== 'SB' && seat !== 'BB';
+  const steps: string[] = [];
+  let situation = '';
+  let actions: PreflopAction[];
+  const labels: Partial<Record<PreflopAction, string>> = {};
+
+  if (kind === 'vsLimpers') {
+    const n = Math.max(count, count >= 3 ? 3 + Math.floor(rng() * 2) : count);
+    const limpers = before.filter((s) => s !== 'BB').slice(-n);
+    const iso = isoSize(mode, seat, n);
+    situation = `${limpers.length > 3 ? `${limpers.length} players` : limpers.join(', ')} limp${limpers.length === 1 ? 's' : ''}. You're ${seat === 'BTN' ? 'on the button' : `in the ${seat}`}.`;
+    actions = seat === 'BB' ? ['raise', 'check'] : ['raise', 'limp', 'fold'];
+    labels.raise = seat === 'BB' ? `Raise to ${bbs(iso.best)}` : `Iso-raise to ${bbs(iso.best)}`;
+    labels.limp = seat === 'SB' ? 'Complete' : 'Overlimp';
+    labels.check = 'Check';
+    steps.push(`Iso size: ${iso.reason}`);
+    const pot = 1.5 + limpers.length;
+    const sbExtra = seat === 'SB' ? 0.5 : 1;
+    steps.push(
+      seat === 'BB'
+        ? `Checking is free: you see a ${limpers.length + (chart.seats.includes('SB') ? 2 : 1)}-way flop for no extra chips.`
+        : `Overlimp price: ${round(sbExtra)}bb into ${round(pot)}bb = ${formatPercent(potOdds(pot, sbExtra).requiredEquity)} equity needed — cheap, so hands that make big multi-way hands can take it.`,
+    );
+  } else if (kind === 'vsLimpRaise') {
+    const raiser = pickFrom(rng, chart.seats.slice(chart.seats.indexOf(seat) + 1));
+    const iso = isoSize(mode, raiser, 1 + (rng() < 0.4 ? 1 : 0));
+    situation = `You ${before.length ? 'overlimp' : 'limp'} from the ${seat}. ${raiser} raises to ${bbs(iso.best)} and it folds back to you.`;
+    actions = ['3bet', 'call', 'fold'];
+    labels['3bet'] = '3-bet';
+    labels.call = `Call ${bbs(iso.best - 1)}`;
+    const pot = 1.5 + 1 + iso.best + (before.length ? 1 : 0);
+    steps.push(`Price to call: ${bbs(iso.best - 1)} into ${bbs(pot)} = ${formatPercent(potOdds(pot, iso.best - 1).requiredEquity)} equity needed — but you'll play out of position against a range that raised.`);
+  } else if (kind === 'squeeze') {
+    // Non-blind players who acted before hero (for the blinds: everyone but the blinds).
+    const pool = seat === 'SB' || seat === 'BB' ? chart.seats.filter((s) => s !== 'SB' && s !== 'BB') : before;
+    const n = Math.min(count, pool.length - 1);
+    const opener = pool[Math.floor(rng() * (pool.length - n))]!;
+    const callers = pool.slice(-n);
+    const open = chart.openSize(opener);
+    const sq = squeezeSize(open, count, inPosition);
+    situation = `${opener} opens to ${bbs(open)}, ${callers.join(' and ')} call${callers.length === 1 ? 's' : ''}. You're ${seat === 'BTN' ? 'on the button' : `in the ${seat}`}.`;
+    actions = ['3bet', 'call', 'fold'];
+    labels['3bet'] = `Squeeze to ${bbs(sq.best)}`;
+    labels.call = 'Call';
+    steps.push(`Squeeze size: ${sq.reason}`);
+  } else {
+    const opener = pickFrom(rng, before.filter((s) => s !== 'SB' && s !== 'BB').length ? before.filter((s) => s !== 'SB' && s !== 'BB') : before);
+    const open = chart.openSize(opener);
+    const three = Math.round(open * (inPosition ? 3 : 4) * 2) / 2;
+    const four = Math.min(chart.json.stackBb, Math.round(three * 2.3 * 2) / 2);
+    situation = `${opener} opens to ${bbs(open)}, you 3-bet to ${bbs(three)} from the ${seat}, ${opener} 4-bets to ${bbs(four)}.`;
+    actions = ['5bet', 'call', 'fold'];
+    labels['5bet'] = `All-in (${bbs(chart.json.stackBb)})`;
+    labels.call = `Call ${bbs(four - three)}`;
+    const pot = 1.5 + three + four - (opener === 'SB' ? 0.5 : 0) - (seat === 'BB' ? 1 : seat === 'SB' ? 0.5 : 0);
+    steps.push(`Price to call the 4-bet: ${bbs(four - three)} into ${bbs(pot)} = ${formatPercent(potOdds(pot, four - three).requiredEquity)} equity needed. Stacks: ${bbs(chart.json.stackBb)}, so after calling ${bbs(chart.json.stackBb - four)} would be left behind.`);
+  }
+
+  const continuing = combinedStats(spot);
+  const reasonFor = (a: PreflopAction) =>
+    preflopReason({ kind, label, seat, best: strat.main, chosen: a, rangeFraction: continuing.fraction, playersBehind: chart.seatsBehind(seat).length, count, stackBb: chart.json.stackBb });
+  const cands: Candidate[] = actions.map((a) => {
+    const f = strat.freq[a] ?? 0;
+    return { label: labels[a] ?? ACTION_NAMES[a], grade: gradeFromFreq(f, a === strat.main), note: `${formatPercent(f, 0)} in chart`, feedback: reasonFor(a) };
+  });
+  const rangeSteps = Object.entries(spot.ranges).map(([a, r]) => {
+    const st = actionStats(r!);
+    return `${a === 'limp' ? (seat === 'SB' ? 'Complete' : 'Overlimp') : ACTION_NAMES[a as PreflopAction]} range: ${formatPercent(st.fraction)} of hands (${round(st.combos)} combos)`;
+  });
+  const name = kind === 'vsLimpers' ? `${seat} vs ${count >= 3 ? '3+' : count} limper${count === 1 ? '' : 's'}` : kind === 'squeeze' ? `${seat} squeeze, ${count >= 2 ? '2+' : 1} caller${count === 1 ? '' : 's'}` : kind === 'vsLimpRaise' ? `${seat} limp, facing a raise` : `${seat} 3-bet, facing a 4-bet`;
+  return {
+    id,
+    kind: drillKind,
+    skill: `${drillKind}:${variant}`,
+    tags: [`preflop.seat:${seat}`, `preflop.group:${handGroup(label)}`],
+    difficulty,
+    prompt: `${situation} What's your play?`,
+    context: { hero: comboFor(rng, label), facts: [{ label: 'Game', value: chart.name }, { label: 'Seat', value: seat }] },
+    choices: finalizeChoices(cands, rng, actions.length),
+    explanation: {
+      summary: reasonFor(strat.main),
+      steps: [...steps, ...rangeSteps, `${label}: ${actions.map((a) => `${labels[a] ?? ACTION_NAMES[a]} ${formatPercent(strat.freq[a] ?? 0, 0)}`).join(' · ')}`, `Hand group: ${HAND_GROUP_NAMES[handGroup(label)]}`],
+    },
+    visual: visualFor(spot, label, `${chart.name} · ${name} (approximation)`, {
+      raise: 'Iso-raise',
+      limp: seat === 'SB' ? 'Complete' : 'Overlimp',
+      '3bet': kind === 'squeeze' ? 'Squeeze' : '3-bet',
+      '5bet': 'All-in',
+    }),
+  };
+}
+
+// ---------------------------------------------------------------------------
 
 export function makePreflopDrills(ctx: PreflopDrillContext): DrillDef[] {
   const { chart } = ctx;
@@ -318,6 +432,40 @@ export function makePreflopDrills(ctx: PreflopDrillContext): DrillDef[] {
   const bbVs = chart.facingOpenPairs().filter((p) => p.seat === 'BB').map((p) => `vs:${p.opener}`);
   const mode: GameMode = chart.id.startsWith('home') ? 'home' : 'casino';
   const wrap = (fn: typeof flashQuestion) => (rng: Rng, d: Difficulty, v: string, id: string) => fn(ctx, rng, d, v, id);
+  const home = (kind: string) => (rng: Rng, d: Difficulty, v: string, id: string) => homeSpotQuestion(ctx, rng, d, v, id, kind);
+  const limp = chart.limperSpots().map((s) => `lim:${s.seat}:${s.limpers}`);
+  const limpEasy = limp.filter((v) => v.endsWith(':1'));
+  const limpRaise = chart.limpRaiseSeats().map((s) => `lr:${s}`);
+  const squeeze = chart.squeezeSpots().map((s) => `sq:${s.seat}:${s.callers}`);
+  const four = chart.facing4betSeats().map((s) => `4b:${s}`);
+  const extra: DrillDef[] = [];
+  if (limp.length)
+    extra.push({
+      kind: 'preflop.limpers',
+      title: 'Limpers',
+      blurb: 'Iso-raise, overlimp or fold',
+      glyph: 'LP',
+      variants: { bronze: limpEasy.length ? limpEasy : limp, silver: limp, gold: [...limp, ...limpRaise] },
+      generate: home('preflop.limpers'),
+    });
+  if (squeeze.length)
+    extra.push({
+      kind: 'preflop.squeeze',
+      title: 'Squeeze',
+      blurb: 'An open and callers before you',
+      glyph: 'SQ',
+      variants: { bronze: squeeze.filter((v) => v.endsWith(':1')), silver: squeeze, gold: squeeze },
+      generate: home('preflop.squeeze'),
+    });
+  if (four.length)
+    extra.push({
+      kind: 'preflop.vs4bet',
+      title: 'Facing 4-bets',
+      blurb: 'Jam, call or fold',
+      glyph: '4B',
+      variants: { bronze: four, silver: four, gold: four },
+      generate: home('preflop.vs4bet'),
+    });
   return [
     {
       kind: 'preflop.flash',
@@ -351,6 +499,7 @@ export function makePreflopDrills(ctx: PreflopDrillContext): DrillDef[] {
       variants: { bronze: bbVs, silver: bbVs, gold: bbVs },
       generate: wrap(defenseQuestion),
     },
+    ...extra,
   ];
 }
 

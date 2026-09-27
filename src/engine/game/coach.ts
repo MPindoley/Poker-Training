@@ -8,6 +8,7 @@ import { formatPercent } from '../math';
 import { potOdds } from '../odds';
 import type { Chart, HandStrategy, PreflopAction } from '../preflop/charts';
 import { strategyFor } from '../preflop/charts';
+import { straddleView } from '../preflop/straddle';
 import { ACTION_NAMES } from '../preflop/reasons';
 import { parseRange } from '../range';
 import type { Spot } from '../postflop/scenario';
@@ -22,6 +23,8 @@ import type { RangeMap } from './tracker';
 const SIX_MAX_ALIAS: Record<string, string> = { 'UTG+1': 'UTG', MP: 'UTG', LJ: 'UTG' };
 const seatName = (chart: Chart, pos: string) => (chart.seats.includes(pos) ? pos : SIX_MAX_ALIAS[pos] ?? pos);
 
+export type AdviceKind = 'rfi' | 'vsOpen' | 'vs3bet' | 'vsLimpers' | 'squeeze' | 'vsLimpRaise' | 'vs4bet' | 'none';
+
 export interface PreflopAdvice {
   situation: string;
   label: string;
@@ -29,48 +32,96 @@ export interface PreflopAdvice {
   best: PreflopAction | null;
   /** Equity needed to call, when facing a raise. */
   price: number | null;
-  kind: 'rfi' | 'vsOpen' | 'vs3bet' | 'none';
+  kind: AdviceKind;
+  /** Limpers (vsLimpers) or callers (squeeze) in front of hero. */
+  count?: number;
+}
+
+/**
+ * Read the preflop action so far from hero's point of view. Posts (blinds, straddle) are ignored;
+ * calls before any raise are limps (completing the SB counts as a limp).
+ */
+export function preflopLine(s: HandState, heroSeat: number) {
+  const acts = s.log.filter((e) => e.street === 'preflop' && e.type !== 'post-sb' && e.type !== 'post-bb' && e.type !== 'post-straddle');
+  const raises = acts.filter((e) => e.type === 'raise' || e.type === 'bet');
+  const firstRaise = acts.findIndex((e) => e.type === 'raise' || e.type === 'bet');
+  const beforeRaise = firstRaise < 0 ? acts : acts.slice(0, firstRaise);
+  const limpers = beforeRaise.filter((e) => e.type === 'call').length;
+  const heroLimped = beforeRaise.some((e) => e.seat === heroSeat && e.type === 'call');
+  const lastRaise = raises[raises.length - 1];
+  const callersAfterRaise = lastRaise ? acts.slice(acts.indexOf(lastRaise) + 1).filter((e) => e.type === 'call').length : 0;
+  return { raises, limpers, heroLimped, callersAfterRaise };
+}
+
+/** Physical position names -> chart seats (with a straddle, everyone reads one seat tighter; see preflop/straddle.ts). */
+export function chartSeatFor(chart: Chart, s: HandState, pos: string): string {
+  const base = seatName(chart, pos);
+  if (s.straddleSeat < 0) return base;
+  return straddleView(chart.seats, chart.json.stackBb).seatMap[base] ?? base;
 }
 
 /** Chart-based advice for hero's preflop decision. */
 export function preflopAdvice(s: HandState, heroSeat: number, chart: Chart, positions: Record<number, string>): PreflopAdvice {
   const hero = s.seats[heroSeat]!;
   const label = holeLabel(hero.hole);
-  const raises = s.log.filter((e) => e.street === 'preflop' && (e.type === 'raise' || e.type === 'bet'));
-  const me = seatName(chart, positions[heroSeat]!);
+  const { raises, limpers, heroLimped, callersAfterRaise } = preflopLine(s, heroSeat);
+  const me = chartSeatFor(chart, s, positions[heroSeat]!);
   const toCall = Math.max(0, s.currentBet - hero.bet);
   const price = toCall > 0 ? potOdds(potSize(s), toCall).requiredEquity : null;
+  const straddled = s.straddleSeat >= 0 ? ' (straddled pot: you read as the ' + me + ')' : '';
   let spot = null;
-  let kind: PreflopAdvice['kind'] = 'none';
+  let kind: AdviceKind = 'none';
   let situation = '';
-  if (raises.length === 0) {
+  let count: number | undefined;
+  if (raises.length === 0 && limpers === 0) {
     spot = chart.rfi(me);
     kind = spot ? 'rfi' : 'none';
-    situation = me === 'BB' ? 'Limped to you in the big blind' : `First in from the ${me}`;
-  } else if (raises.length === 1 && s.log.some((e) => e.street === 'preflop' && e.seat === heroSeat && e.type === 'call')) {
-    situation = 'You limped and now face a raise — continue only with strong hands';
+    situation = me === 'BB' ? 'Folded to you in the big blind' : `First in from the ${me}`;
+  } else if (raises.length === 0) {
+    spot = chart.vsLimpers(me, limpers);
+    kind = spot ? 'vsLimpers' : 'none';
+    count = limpers;
+    situation = `${limpers} limper${limpers === 1 ? '' : 's'} in front of you in the ${me}`;
+  } else if (raises.length === 1 && heroLimped) {
+    spot = chart.vsLimpRaise(me);
+    kind = spot ? 'vsLimpRaise' : 'none';
+    situation = 'You limped and now face a raise — limp-calling is usually weak';
   } else if (raises.length === 1 && raises[0]!.seat !== heroSeat) {
-    const opener = seatName(chart, positions[raises[0]!.seat]!);
-    spot = chart.vsOpen(me, opener);
-    kind = spot ? 'vsOpen' : 'none';
-    situation = `${opener} opened, you're in the ${me}`;
+    const opener = chartSeatFor(chart, s, positions[raises[0]!.seat]!);
+    if (callersAfterRaise > 0) {
+      spot = chart.squeeze(me, callersAfterRaise);
+      kind = spot ? 'squeeze' : 'none';
+      count = callersAfterRaise;
+      situation = `${opener} opened and ${callersAfterRaise} player${callersAfterRaise === 1 ? '' : 's'} called: a squeeze spot in the ${me}`;
+    }
+    if (!spot) {
+      spot = chart.vsOpen(me, opener);
+      kind = spot ? 'vsOpen' : 'none';
+      situation = `${opener} opened, you're in the ${me}`;
+    }
   } else if (raises.length === 2 && raises[0]!.seat === heroSeat) {
     spot = chart.vs3bet(me);
     kind = spot ? 'vs3bet' : 'none';
     situation = `You opened from the ${me} and face a 3-bet`;
+  } else if (raises.length === 3 && raises[1]!.seat === heroSeat) {
+    spot = chart.vs4bet(me);
+    kind = spot ? 'vs4bet' : 'none';
+    situation = `You 3-bet from the ${me} and face a 4-bet`;
   } else {
     situation = 'Multiple raises — play only premium hands';
   }
   const strategy = spot ? strategyFor(spot, label) : null;
-  return { situation, label, strategy, best: strategy?.main ?? null, price, kind };
+  return { situation: situation + straddled, label, strategy, best: strategy?.main ?? null, price, kind, count };
 }
 
 /** Map hero's preflop action to the chart action it represents. */
-export function chartAction(kind: PreflopAdvice['kind'], type: ActionEvent['type']): PreflopAction {
+export function chartAction(kind: AdviceKind, type: ActionEvent['type']): PreflopAction {
   if (type === 'fold') return 'fold';
+  if (kind === 'vsLimpers') return type === 'call' ? 'limp' : type === 'check' ? 'check' : 'raise';
   if (type === 'call' || type === 'check') return kind === 'rfi' ? (type === 'check' ? 'fold' : 'limp') : 'call';
-  if (kind === 'vsOpen') return '3bet';
+  if (kind === 'vsOpen' || kind === 'squeeze' || kind === 'vsLimpRaise') return '3bet';
   if (kind === 'vs3bet') return '4bet';
+  if (kind === 'vs4bet') return '5bet';
   return 'raise';
 }
 
@@ -83,7 +134,7 @@ export function gradePreflop(advice: PreflopAdvice, type: ActionEvent['type']): 
   const grade: Grade = a === advice.strategy.main ? 'best' : f >= 0.25 ? 'acceptable' : 'mistake';
   const chartSays = (Object.entries(advice.strategy.freq) as [PreflopAction, number][])
     .filter(([, v]) => v > 0.005)
-    .map(([k, v]) => `${ACTION_NAMES[k]} ${formatPercent(v, 0)}`)
+    .map(([k, v]) => `${k === 'limp' && advice.kind === 'vsLimpers' ? 'Overlimp' : ACTION_NAMES[k]} ${formatPercent(v, 0)}`)
     .join(', ');
   return { grade, note: `${advice.situation}: chart plays ${advice.label} as ${chartSays}.` };
 }
@@ -170,7 +221,11 @@ export interface DecisionTags {
   chosenFraction?: number | null;
   bestFraction?: number | null;
   actionType: string;
-  preflopKind?: 'rfi' | 'vsOpen' | 'vs3bet' | 'none';
+  preflopKind?: AdviceKind;
+  /** Limpers or callers in front of hero (preflop). */
+  preflopCount?: number;
+  /** Hero's iso-raise size and the size the chart recommends (bb), for the leak finder. */
+  isoSize?: { chosen: number; recommended: number };
 }
 
 export interface DecisionReview {

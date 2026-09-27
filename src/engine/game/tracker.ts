@@ -26,7 +26,7 @@ function subtract(a: Range, b: Range): Range {
 /** Update ranges after `event` (which happened in `before`). */
 export function updateRanges(ranges: RangeMap, before: HandState, event: ActionEvent, bots: Record<number, BotProfile | undefined>): RangeMap {
   const bot = bots[event.seat];
-  if (!bot || event.type === 'post-sb' || event.type === 'post-bb') return ranges;
+  if (!bot || event.type === 'post-sb' || event.type === 'post-bb' || event.type === 'post-straddle') return ranges;
   const next = { ...ranges };
   const cur = ranges[event.seat]!;
   if (event.street === 'preflop') {

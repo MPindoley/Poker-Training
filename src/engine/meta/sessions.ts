@@ -34,14 +34,15 @@ export interface SessionPlan {
 export const VENUE_KINDS: Record<Venue, Record<SkillArea, readonly string[]>> = {
   home: {
     math: ['math.potodds', 'math.outs', 'math.rule24', 'math.callfold'],
-    preflop: ['preflop.flash', 'preflop.defense'],
+    // Home games start most pots with limpers: listed three times so limper spots come up about half the time.
+    preflop: ['preflop.limpers', 'preflop.limpers', 'preflop.limpers', 'preflop.squeeze', 'preflop.flash', 'preflop.defense'],
     postflop: ['postflop.short', 'postflop.value', 'postflop.facing', 'postflop.multiway'],
     exploits: ['exploit.efls', 'exploit.image'],
     reading: ['postflop.reading', 'math.combos'],
   },
   casino: {
     math: ['math.potodds', 'math.mdf', 'math.ev', 'math.bluff'],
-    preflop: ['preflop.flash', 'preflop.defense', 'preflop.sizing', 'preflop.ladder'],
+    preflop: ['preflop.flash', 'preflop.defense', 'preflop.sizing', 'preflop.squeeze', 'preflop.vs4bet', 'preflop.limpers'],
     postflop: ['postflop.cbet', 'postflop.facing', 'postflop.checkraise', 'postflop.turn', 'postflop.river'],
     exploits: ['exploit.efls', 'exploit.image'],
     reading: ['postflop.reading', 'math.combos'],
@@ -50,7 +51,7 @@ export const VENUE_KINDS: Record<Venue, Record<SkillArea, readonly string[]>> = 
 
 /** Share of warm-up time per area before the weak-spot boost. */
 export const WARMUP_SHARES: Record<Venue, Record<SkillArea, number>> = {
-  home: { math: 0.3, preflop: 0.2, postflop: 0.25, exploits: 0.1, reading: 0.15 },
+  home: { math: 0.25, preflop: 0.25, postflop: 0.25, exploits: 0.1, reading: 0.15 },
   casino: { math: 0.2, preflop: 0.25, postflop: 0.3, exploits: 0.1, reading: 0.15 },
 };
 export const WARMUP_SECONDS = 600;

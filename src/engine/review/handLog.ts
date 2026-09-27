@@ -10,6 +10,8 @@ import { potOdds } from '../odds';
 import type { Chart, PreflopAction } from '../preflop/charts';
 import { strategyFor } from '../preflop/charts';
 import { ACTION_NAMES } from '../preflop/reasons';
+import { classifyPreflopDecision } from '../preflop/line';
+import { isoSize } from '../preflop/sizing';
 import { COMBOS, type Range } from '../range';
 import { bettingRange, checkingRange, classifyRange, continuingRange, type Street } from '../postflop/narrow';
 import { preflopLineRanges, type PreflopLine } from '../postflop/replay';
@@ -18,7 +20,7 @@ import { analyzeSpot, signedBb, type SpotAnalysis } from '../strategy/analyze';
 import { HERO_LINE_MODEL, forStreet, type VillainModel } from '../strategy/villainModel';
 import { rangeVisual } from '../postflop/drills';
 import type { StrategyVisual } from '../drills/types';
-import type { DecisionReview } from '../game/coach';
+import { chartAction, type DecisionReview } from '../game/coach';
 
 export type LogStreet = 'preflop' | Street;
 export type LogActionType = 'fold' | 'check' | 'call' | 'bet' | 'raise';
@@ -40,6 +42,8 @@ export interface LoggedHand {
   villainSeat: string;
   /** Custom profile id for the opponent, if tagged. */
   villainProfileId?: string;
+  /** Limpers who limped before the logged action (not logged as players), for limper spots. */
+  limpers?: number;
   /** Effective stack at the start, in big blinds. */
   stackBb: number;
   /** Real-money big blind, for display ($ per bb). */
@@ -192,61 +196,87 @@ export function analyzeLoggedHand(hand: LoggedHand, chart: Chart, model: Villain
       return COMBOS.find((c) => c.c1 === a && c.c2 === b)!.label;
     })();
 
-    // Preflop hero decisions: graded by the chart.
+    // Preflop hero decisions: graded by the chart for the spot the action so far creates
+    // (first in, behind limpers, squeeze, limped-and-raised, facing a 3-bet or 4-bet).
     const preActs = replay.actions.filter((a) => a.street === 'preflop');
     let raisesSeen = 0;
-    let villainOpened = false;
-    for (const a of preActs) {
-      if (a.actor === 'hero') {
-        const kind = raisesSeen === 0 ? 'rfi' : raisesSeen === 1 && villainOpened ? 'vsOpen' : raisesSeen === 2 ? 'vs3bet' : 'none';
-        const spot = kind === 'rfi' ? chart.rfi(hand.heroSeat) : kind === 'vsOpen' ? chart.vsOpen(hand.heroSeat, hand.villainSeat) : kind === 'vs3bet' ? chart.vs3bet(hand.heroSeat) : null;
-        const chosen: PreflopAction =
-          a.type === 'fold' ? 'fold' : a.type === 'call' || a.type === 'check' ? (kind === 'rfi' ? 'limp' : 'call') : kind === 'vsOpen' ? '3bet' : kind === 'vs3bet' ? '4bet' : 'raise';
-        let grade: Grade | null = null;
-        let note = 'No chart for this preflop spot.';
-        let evLost: number | null = null;
-        if (spot && !(a.type === 'check')) {
-          const strat = strategyFor(spot, heroLabel);
-          const f = strat.freq[chosen] ?? 0;
-          grade = chosen === strat.main ? 'best' : f >= 0.25 ? 'acceptable' : 'mistake';
-          note = `Chart plays ${heroLabel} from ${hand.heroSeat}${kind === 'vsOpen' ? ` vs ${hand.villainSeat}` : ''} as ${(Object.entries(strat.freq) as [PreflopAction, number][])
-            .filter(([, v]) => v > 0.005)
-            .map(([k, v]) => `${ACTION_NAMES[k]} ${formatPercent(v, 0)}`)
-            .join(', ')}.`;
-          // Blind calls: estimate the cost of a bad call with equity vs the opener's range.
-          if (kind === 'vsOpen' && a.type === 'call' && grade === 'mistake') {
-            const opener = chart.rfi(hand.villainSeat)?.ranges.raise;
-            if (opener) {
-              const eq = calculateEquity([hand.heroCards.join(''), opener], { iterations: 3000, seed: 5, forceMonteCarlo: true }).players[0]!.equity;
-              const call = a.added;
-              const ev = eq * 0.8 * (a.potBefore + call) - call;
-              evLost = r2(Math.max(0, -ev));
-            }
+    for (let i = 0; i < preActs.length; i++) {
+      const a = preActs[i]!;
+      if (a.type === 'raise') raisesSeen++;
+      if (a.actor !== 'hero') continue;
+      const prior = preActs.slice(0, i).map((p) => ({ actor: p.actor, type: p.type }));
+      const decision = classifyPreflopDecision(prior, 'hero', i === 0 || !prior.some((p) => p.type === 'raise') ? hand.limpers ?? 0 : 0);
+      const kind = decision.kind;
+      const spot =
+        kind === 'vsOpen'
+          ? chart.vsOpen(hand.heroSeat, hand.villainSeat)
+          : kind === 'none'
+            ? null
+            : chart.spot({ kind, seat: hand.heroSeat, limpers: decision.count, callers: decision.count });
+      const chosen: PreflopAction = chartAction(kind, a.type);
+      let grade: Grade | null = null;
+      let note = 'No chart for this preflop spot.';
+      let evLost: number | null = null;
+      const bbCheck = a.type === 'check' && (kind === 'rfi' || (kind === 'vsLimpers' && hand.heroSeat !== 'BB'));
+      if (spot && !bbCheck) {
+        const strat = strategyFor(spot, heroLabel);
+        const f = strat.freq[chosen] ?? 0;
+        grade = chosen === strat.main ? 'best' : f >= 0.25 ? 'acceptable' : 'mistake';
+        const where =
+          kind === 'vsOpen'
+            ? ` vs ${hand.villainSeat}`
+            : kind === 'vsLimpers'
+              ? ` behind ${decision.count} limper${decision.count === 1 ? '' : 's'}`
+              : kind === 'squeeze'
+                ? ` facing an open and ${decision.count} caller${decision.count === 1 ? '' : 's'}`
+                : kind === 'vsLimpRaise'
+                  ? ' after limping into a raise'
+                  : kind === 'vs4bet'
+                    ? ' facing a 4-bet'
+                    : '';
+        note = `Chart plays ${heroLabel} from ${hand.heroSeat}${where} as ${(Object.entries(strat.freq) as [PreflopAction, number][])
+          .filter(([, v]) => v > 0.005)
+          .map(([k, v]) => `${k === 'limp' && kind === 'vsLimpers' ? 'Overlimp' : ACTION_NAMES[k]} ${formatPercent(v, 0)}`)
+          .join(', ')}.`;
+        // Blind calls: estimate the cost of a bad call with equity vs the opener's range.
+        if (kind === 'vsOpen' && a.type === 'call' && grade === 'mistake') {
+          const opener = chart.rfi(hand.villainSeat)?.ranges.raise;
+          if (opener) {
+            const eq = calculateEquity([hand.heroCards.join(''), opener], { iterations: 3000, seed: 5, forceMonteCarlo: true }).players[0]!.equity;
+            const call = a.added;
+            const ev = eq * 0.8 * (a.potBefore + call) - call;
+            evLost = r2(Math.max(0, -ev));
           }
         }
-        decisions.push({
+      }
+      decisions.push({
+        street: 'preflop',
+        heroAction: a,
+        analysis: null,
+        review: {
           street: 'preflop',
-          heroAction: a,
-          analysis: null,
-          review: {
-            street: 'preflop',
-            action: actionLabel(a),
-            grade,
-            evLost,
-            equity: null,
-            best: spot ? ACTION_NAMES[strategyFor(spot, heroLabel).main] : null,
-            note,
-            tags: { facingBet: raisesSeen > 0, heroPos: hand.heroSeat, actionType: a.type, preflopKind: kind as 'rfi' | 'vsOpen' | 'vs3bet' | 'none' },
+          action: actionLabel(a),
+          grade,
+          evLost,
+          equity: null,
+          best: spot ? ACTION_NAMES[strategyFor(spot, heroLabel).main] : null,
+          note,
+          tags: {
+            facingBet: raisesSeen - (a.type === 'raise' ? 1 : 0) > 0,
+            heroPos: hand.heroSeat,
+            actionType: a.type,
+            preflopKind: kind,
+            preflopCount: decision.count,
+            isoSize:
+              kind === 'vsLimpers' && a.type === 'raise'
+                ? { chosen: a.resolvedTo, recommended: isoSize(chart.id.startsWith('home') ? 'home' : 'casino', hand.heroSeat, decision.count).best }
+                : undefined,
           },
-          summary: grade ? `${actionVerb(a)} ${heroLabel} preflop was ${VERDICT[grade]}. ${note}` : note,
-          villainRange: null,
-          potOddsNeeded: null,
-        });
-      }
-      if (a.type === 'raise') {
-        raisesSeen++;
-        if (a.actor === 'villain' && raisesSeen === 1) villainOpened = true;
-      }
+        },
+        summary: grade ? `${actionVerb(a)} ${heroLabel} preflop was ${VERDICT[grade]}. ${note}` : note,
+        villainRange: null,
+        potOddsNeeded: null,
+      });
     }
 
     // Postflop: walk actions, narrowing ranges, analysing each hero decision.

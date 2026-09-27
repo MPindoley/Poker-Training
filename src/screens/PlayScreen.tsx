@@ -70,13 +70,14 @@ export function PlayScreen() {
               { value: 'coach', label: 'Coach mode' },
               { value: 'badges', label: 'Show player types' },
               { value: 'home', label: `Home Game preset (${profiles.length} players)` },
+              { value: 'straddle', label: 'UTG straddle (2bb)' },
             ]}
-            value={[...(cfg.coach ? ['coach'] : []), ...(cfg.showBadges ? ['badges'] : []), ...(cfg.homeGame ? ['home'] : [])]}
-            onChange={(v) => set({ coach: v.includes('coach'), showBadges: v.includes('badges'), homeGame: v.includes('home') })}
+            value={[...(cfg.coach ? ['coach'] : []), ...(cfg.showBadges ? ['badges'] : []), ...(cfg.homeGame ? ['home'] : []), ...(cfg.straddle ? ['straddle'] : [])]}
+            onChange={(v) => set({ coach: v.includes('coach'), showBadges: v.includes('badges'), homeGame: v.includes('home'), straddle: v.includes('straddle') })}
           />
           <p className="text-xs font-semibold text-cream/70">
             Coach off: no hints while you play, graded afterwards only. Player types hidden: figure them out yourself. Home Game fills the table with your
-            profiles from the Exploit Lab.
+            profiles from the Exploit Lab. Straddle: UTG posts 2bb and acts last preflop; the coach reads every seat one position tighter.
           </p>
         </div>
       </Panel>

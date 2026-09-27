@@ -10,7 +10,10 @@ import {
   botDecision,
   createRng,
   describeAction,
+  STRADDLE_BB,
   gradePreflop,
+  isoSize,
+  preflopUnit,
   indexToString,
   initialRanges,
   makeBot,
@@ -51,6 +54,8 @@ export interface TableConfig {
   coach: boolean;
   showBadges: boolean;
   homeGame: boolean;
+  /** UTG posts a 2bb straddle every hand (optional: older saved tables have no value = off). */
+  straddle?: boolean;
 }
 
 export const DEFAULT_CONFIG: TableConfig = { players: 6, stackBb: 40, bigBlindDollars: 0.5, speed: 'normal', coach: true, showBadges: true, homeGame: false };
@@ -175,7 +180,7 @@ export const useTable = create<TableState>()((set, get) => ({
     const hand = startHand(
       s.names.map((name, i) => ({ name, stack: stacks[i]!, hero: i === HERO })),
       button,
-      { sb: 0.5, bb: 1 },
+      { sb: 0.5, bb: 1, straddle: s.config.straddle ? STRADDLE_BB : undefined },
       createRng(Date.now() + handNo),
       handNo,
     );
@@ -279,7 +284,17 @@ async function reviewHand() {
         equity: null,
         best: d.preflop.best,
         note: g?.note ?? d.preflop.situation,
-        tags: { facingBet: (d.preflop.price ?? 0) > 0, heroPos: s.positions[HERO], actionType: ev.type, preflopKind: d.preflop.kind },
+        tags: {
+          facingBet: (d.preflop.price ?? 0) > 0,
+          heroPos: s.positions[HERO],
+          actionType: ev.type,
+          preflopKind: d.preflop.kind,
+          preflopCount: d.preflop.count,
+          isoSize:
+            d.preflop.kind === 'vsLimpers' && (ev.type === 'raise' || ev.type === 'bet')
+              ? { chosen: ev.to / preflopUnit(hand), recommended: isoSize(s.chart?.id.startsWith('home') ? 'home' : 'casino', s.positions[HERO]!, d.preflop.count ?? 1).best }
+              : undefined,
+        },
       });
       continue;
     }

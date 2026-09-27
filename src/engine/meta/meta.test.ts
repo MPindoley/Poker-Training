@@ -233,3 +233,11 @@ describe('resolveLoadout', () => {
     expect(resolveLoadout({ cardBack: 'back.ember' }, 1, owned).cardBack.id).toBe('back.ember');
   });
 });
+
+describe('home-game warm-up weights limper spots', () => {
+  it('limper spots are at least half of the home preflop kinds, and appear in casino too', () => {
+    const k = VENUE_KINDS.home.preflop;
+    expect(k.filter((x) => x === 'preflop.limpers').length / k.length).toBeGreaterThanOrEqual(0.5);
+    expect(VENUE_KINDS.casino.preflop).toContain('preflop.limpers');
+  });
+});

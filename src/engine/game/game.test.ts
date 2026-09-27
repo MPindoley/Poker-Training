@@ -173,3 +173,70 @@ describe('coach', () => {
     expect(sum.luck).toBeCloseTo(r.actual - r.expected, 2);
   });
 });
+
+describe('straddle', () => {
+  it('UTG posts 2bb, action starts after the straddler, and the straddler gets an option', () => {
+    let s = startHand(Array.from({ length: 4 }, (_, i) => ({ name: `P${i}`, stack: 100 })), 0, { sb: 0.5, bb: 1, straddle: 2 }, createRng(21));
+    expect(s.straddleSeat).toBe(3);
+    expect(s.currentBet).toBe(2);
+    expect(s.toAct).toBe(0);
+    expect(legalActions(s)!.minTo).toBe(4);
+    for (const a of [{ type: 'call' }, { type: 'call' }, { type: 'call' }] as const) s = applyAction(s, a);
+    expect(s.toAct).toBe(3);
+    expect(legalActions(s)!.canCheck).toBe(true);
+    s = applyAction(s, { type: 'check' });
+    expect(s.street).toBe('flop');
+  });
+});
+
+describe('coach: home-game preflop spots', () => {
+  const pos = positionsFor([0, 1, 2, 3, 4, 5], 0, 6); // 0 BTN, 1 SB, 2 BB, 3 UTG, 4 HJ, 5 CO
+  const deal = (hero: number) => {
+    const s = startHand(Array.from({ length: 6 }, (_, i) => ({ name: `P${i}`, stack: 100, hero: i === hero })), 0, { sb: 0.5, bb: 1 }, createRng(31));
+    return { ...s, seats: s.seats.map((x) => (x.index === hero ? { ...x, hole: parseCardIndices('AsAd') } : x)) };
+  };
+  const play = (s: HandState, actions: Parameters<typeof applyAction>[1][]) => actions.reduce((st, a) => applyAction(st, a), s);
+
+  it('two limpers → vsLimpers; iso-raise with AA is best, overlimping is a mistake', () => {
+    const s = play(deal(5), [{ type: 'call' }, { type: 'call' }]);
+    const adv = preflopAdvice(s, 5, chart, pos);
+    expect(adv.kind).toBe('vsLimpers');
+    expect(adv.count).toBe(2);
+    expect(gradePreflop(adv, 'raise')!.grade).toBe('best');
+    expect(gradePreflop(adv, 'call')!.grade).toBe('mistake');
+  });
+  it('an open and a caller → squeeze', () => {
+    const s = play(deal(5), [{ type: 'raise', to: 2.5 }, { type: 'call' }]);
+    const adv = preflopAdvice(s, 5, chart, pos);
+    expect(adv.kind).toBe('squeeze');
+    expect(adv.count).toBe(1);
+    expect(adv.best).toBe('3bet');
+  });
+  it('hero limps and someone raises → vsLimpRaise', () => {
+    const s = play(deal(4), [{ type: 'fold' }, { type: 'call' }, { type: 'raise', to: 4 }, { type: 'fold' }, { type: 'fold' }, { type: 'fold' }]);
+    const adv = preflopAdvice(s, 4, chart, pos);
+    expect(adv.kind).toBe('vsLimpRaise');
+  });
+  it('hero 3-bets and faces a 4-bet → vs4bet, and a jam maps to 5bet', () => {
+    const s = play(deal(5), [{ type: 'raise', to: 2.5 }, { type: 'fold' }, { type: 'raise', to: 8 }, { type: 'fold' }, { type: 'fold' }, { type: 'fold' }, { type: 'raise', to: 20 }]);
+    const adv = preflopAdvice(s, 5, chart, pos);
+    expect(adv.kind).toBe('vs4bet');
+    expect(adv.best).toBe('5bet');
+    expect(gradePreflop(adv, 'raise')!.grade).toBe('best');
+  });
+});
+
+describe('limping bots', () => {
+  it('calling stations open-limp first in far more often than TAGs', () => {
+    const firstInLimps = (id: 'station' | 'tag') => {
+      let limps = 0;
+      for (let i = 0; i < 400; i++) {
+        const s = startHand(Array.from({ length: 6 }, (_, k) => ({ name: `P${k}`, stack: 100 })), 0, { sb: 0.5, bb: 1 }, createRng(1000 + i));
+        const a = botDecision(s, makeBot('X', ARCHETYPES[id].stats, id), createRng(i));
+        if (a.type === 'call') limps++;
+      }
+      return limps;
+    };
+    expect(firstInLimps('station')).toBeGreaterThan(firstInLimps('tag') * 3);
+  });
+});

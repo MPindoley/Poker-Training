@@ -1,4 +1,4 @@
-import { bigBlindPrice, buildCharts, hitProbability, rangeFraction, sizingRule, type ChartJson } from '../../engine';
+import { bigBlindPrice, buildCharts, hitProbability, isoSize, rangeFraction, sizingRule, squeezeSize, straddleView, STRADDLE_BB, type ChartJson } from '../../engine';
 import { CHART_LIBRARY } from '../../data/ranges';
 import { pct } from './fmt';
 import type { Unit } from './types';
@@ -104,21 +104,90 @@ export const UNIT3: Unit = {
     {
       id: 'limpers',
       title: 'Playing against limpers',
-      minutes: 2,
-      blurb: 'Isolate, don’t join the crowd',
+      minutes: 3,
+      blurb: 'Isolate, overlimp or fold — by hand and by seat',
       blocks: [
-        { kind: 'p', text: 'Limpers usually have weak, capped ranges. Raise your good hands to isolate them and play heads-up with the initiative.' },
-        { kind: 'p', text: () => `Size up: ${sizingRule('casino', 'CO', 1).reason}` },
-        { kind: 'p', text: 'Over-limping with small pairs and suited connectors can be fine when many players are in and stacks are deep — you want implied odds.' },
-        { kind: 'todo', text: 'Over-limp vs isolate thresholds vary by table; the guidance here is qualitative.' },
-        { kind: 'example', example: 'sizing-price' },
+        { kind: 'p', text: 'Limpers usually have weak, capped ranges: with strong hands they would have raised. You have three options behind them.' },
+        {
+          kind: 'list',
+          items: [
+            'Iso-raise hands that play well heads-up with the initiative and dominate limping ranges: pairs, strong broadways, strong suited aces.',
+            'Overlimp hands that want a cheap multi-way flop: small pairs (sets), suited connectors and suited aces (nut flushes), especially late and with more limpers.',
+            'Fold offsuit hands that flop weak one-pair hands multi-way, like KTo or QJo from an early seat.',
+          ],
+        },
+        {
+          kind: 'p',
+          text: () => {
+            const c = charts()['home-40bb']!;
+            const one = rangeFraction(c.vsLimpers('BTN', 1)!.ranges.raise!);
+            const three = rangeFraction(c.vsLimpers('BTN', 3)!.ranges.raise!);
+            return `More limpers, tighter isos and bigger sizes: the home chart iso-raises ${pct(one, 0)} of hands on the button over one limper but only ${pct(three, 0)} over three or more. ${isoSize('home', 'BTN', 3).reason}`;
+          },
+        },
+        { kind: 'example', example: 'limpers' },
+        { kind: 'p', text: 'Limping yourself and then calling a raise is one of the most common leaks: limping ranges are weak, so most limps should fold to a raise.' },
+        { kind: 'todo', text: 'The exact iso / overlimp boundaries are judgment calls built into the charts (src/data/ranges); edit them in the Range Editor if your table differs.' },
       ],
       quiz: [
         { prompt: 'One player limps and you have AJo on the button. Usually…', choices: ['Raise to isolate', 'Limp behind', 'Fold'], answer: 0, why: 'AJo beats a limping range and plays well heads-up in position.' },
         { prompt: 'Iso-raise size with one limper (casino)?', choices: [() => `About ${sizingRule('casino', 'CO', 1).best}bb`, '2bb', '10bb'], answer: 0, why: () => sizingRule('casino', 'CO', 1).reason },
-        { prompt: 'When is over-limping a small pair reasonable?', choices: ['Several limpers and deep stacks', 'Heads-up with short stacks'], answer: 0, why: 'You need a big pot to pay you when you hit a set.' },
+        {
+          prompt: 'Three players limp and you have 66 on the button in the home game. The chart…',
+          choices: ['Overlimps', 'Iso-raises', 'Folds'],
+          answer: 0,
+          why: () => `66 wants a cheap multi-way flop to hit a set (${pct(setOdds())} of flops); the home chart iso-raises 77+ over three limpers.`,
+        },
+        { prompt: 'You limp and someone raises. With most limping hands you should…', choices: ['Fold', 'Call', 'Re-raise'], answer: 0, why: 'Limping ranges are weak; calling raises out of position with them loses money.' },
       ],
-      drill: { route: '/train/preflop/play?kind=preflop.sizing&d=silver', label: 'Sizing drill' },
+      drill: { route: '/train/preflop/play?kind=preflop.limpers&d=silver', label: 'Limpers drill' },
+      moreDrills: [
+        { route: '/train/preflop/play?kind=preflop.sizing&d=silver', label: 'Sizing drill' },
+        { route: '/train/preflop/paint', label: 'Paint the iso range' },
+      ],
+    },
+    {
+      id: 'squeezing',
+      title: 'Squeezing',
+      minutes: 2,
+      blurb: 'An open plus callers: raise big or fold',
+      blocks: [
+        { kind: 'p', text: 'A squeeze is a 3-bet after someone opens and one or more players call. The callers usually have medium hands that can’t stand a big raise, and there is extra dead money in the pot.' },
+        { kind: 'p', text: () => `Size up for the callers: ${squeezeSize(4, 1, true).reason}` },
+        {
+          kind: 'p',
+          text: () => {
+            const c = charts()['home-40bb']!;
+            return `At a loose-passive home game players call too much, so squeeze for value with very few bluffs: the home chart squeezes ${pct(rangeFraction(c.squeeze('BTN', 1)!.ranges['3bet']!), 1)} of hands on the button against one caller.`;
+          },
+        },
+        { kind: 'example', example: 'squeeze' },
+      ],
+      quiz: [
+        { prompt: 'Open to 4bb, one caller, you’re on the button. Squeeze to about…', choices: [() => `${squeezeSize(4, 1, true).best}bb`, '8bb', '40bb'], answer: 0, why: () => squeezeSize(4, 1, true).reason },
+        { prompt: 'Against loose-passive callers, a squeeze range should be…', choices: ['Value-heavy, few bluffs', 'Mostly bluffs'], answer: 0, why: 'They call too often, so bluffs don’t work and value gets paid.' },
+        { prompt: 'Out of position the squeeze size should be…', choices: ['Bigger', 'Smaller'], answer: 0, why: () => `About ${squeezeSize(4, 1, false).best}bb instead of ${squeezeSize(4, 1, true).best}bb vs a 4bb open and one caller: you'll play without position.` },
+      ],
+      drill: { route: '/train/preflop/play?kind=preflop.squeeze&d=silver', label: 'Squeeze drill' },
+    },
+    {
+      id: 'straddles',
+      title: 'Straddles',
+      minutes: 2,
+      blurb: 'A blind that shrinks stacks and shifts seats',
+      blocks: [
+        { kind: 'p', text: () => `A UTG straddle is a voluntary third blind of ${STRADDLE_BB}bb. The straddler acts last preflop, like the big blind, and every raise is measured in straddles.` },
+        { kind: 'p', text: () => `Stacks shrink: at 40bb deep the game plays like ${straddleView(charts()['home-40bb']!.seats, 40).effectiveStack} "big blinds" — lower SPR, fewer speculative calls, more all-ins.` },
+        { kind: 'p', text: 'Every seat has one extra player behind it (the straddler), so play each seat about one position tighter. The app reads straddled pots that way.' },
+        { kind: 'example', example: 'straddle' },
+        { kind: 'todo', text: 'Treating each seat as one position tighter is a simplification: postflop the button still has position.' },
+      ],
+      quiz: [
+        { prompt: 'With a UTG straddle, who acts last preflop?', choices: ['The straddler', 'The big blind', 'The button'], answer: 0, why: 'The straddle is a live blind with an option.' },
+        { prompt: () => `40bb stacks with a ${STRADDLE_BB}bb straddle play like…`, choices: [() => `${straddleView(charts()['home-40bb']!.seats, 40).effectiveStack} big blinds`, '80 big blinds', '40 big blinds'], answer: 0, why: () => `40 / ${STRADDLE_BB} = ${straddleView(charts()['home-40bb']!.seats, 40).effectiveStack}.` },
+        { prompt: 'In a straddled pot, the button should open…', choices: ['About like the cutoff normally does', 'Wider than usual'], answer: 0, why: 'There is one more player (the straddler) left to act behind you.' },
+      ],
+      drill: { route: '/play', label: 'Play with a straddle' },
     },
     {
       id: 'set-mining',

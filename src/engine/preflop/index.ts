@@ -7,3 +7,4 @@ export * from './drills';
 export * from './ranking';
 export * from './solverImport';
 export * from './straddle';
+export * from './line';

@@ -47,6 +47,7 @@ import {
   type StrategyVisual,
 } from '../../engine';
 import { useCharts } from '../../state/chartStore';
+import { isoSize, squeezeSize, straddleView, type ActionRanges } from '../../engine';
 import { runEquity } from '../../workers/equityClient';
 import { pushChartInWorker } from '../../workers/engineClient';
 import { CardPicker, CardView, ChipGroup, GameButton, StrategyGrid } from '../ui';
@@ -494,7 +495,101 @@ function Variance() {
   );
 }
 
+function strategyVisualFor(s: ActionRanges, caption: string): StrategyVisual {
+  const name: Record<string, string> = { raise: 'Iso-raise', limp: 'Overlimp', '3bet': 'Squeeze', call: 'Call', '5bet': 'All-in' };
+  const color: Record<string, string> = { raise: '#e5383b', limp: '#f5b820', '3bet': '#e5383b', call: '#22b35e', '5bet': '#8b4ae8' };
+  return {
+    kind: 'strategy',
+    cells: Object.fromEntries(Object.entries(strategyGrid(s)).map(([k, v]) => [k, v.freq])),
+    actions: Object.keys(s.ranges).map((a) => ({ id: a, label: name[a] ?? a, color: color[a] ?? '#2f7fe8' })),
+    caption,
+  };
+}
+
+function Limpers() {
+  const charts = useCharts();
+  const [id, setId] = useState('home-40bb');
+  const chart = charts[id]!;
+  const seats = [...new Set(chart.limperSpots().map((x) => x.seat))];
+  const [seatPick, setSeat] = useState('BTN');
+  const seat = seats.includes(seatPick) ? seatPick : seats[seats.length - 1]!;
+  const [limpers, setLimpers] = useState(1);
+  const max = Math.min(3, chart.seatsBefore(seat));
+  const n = Math.min(limpers, max);
+  const spot = chart.vsLimpers(seat, n)!;
+  const mode = id.startsWith('home') ? 'home' : 'casino';
+  const iso = isoSize(mode, seat, n);
+  return (
+    <div className="space-y-2">
+      <ChipGroup options={Object.values(charts).map((c) => ({ value: c.id, label: c.name.split(',')[0]! }))} value={[id]} onChange={(v) => setId(v[0]!)} />
+      <ChipGroup options={seats.map((x) => ({ value: x, label: x }))} value={[seat]} onChange={(v) => setSeat(v[0]!)} />
+      <Slider label="Limpers" value={n} min={1} max={Math.max(1, max)} onChange={setLimpers} format={(v) => (v >= 3 ? '3+' : String(v))} />
+      <StrategyGrid visual={strategyVisualFor(spot, `${chart.name} · ${seat} vs ${n >= 3 ? '3+' : n} limper${n === 1 ? '' : 's'} (approximation)`)} />
+      <Readout
+        items={[
+          ['Iso-raise', pct(rangeFraction(spot.ranges.raise!), 0)],
+          [seat === 'SB' ? 'Complete' : seat === 'BB' ? 'Check' : 'Overlimp', seat === 'BB' ? pct(1 - rangeFraction(spot.ranges.raise!), 0) : pct(rangeFraction(spot.ranges.limp!), 0)],
+          ['Iso size', bbf(iso.best)],
+        ]}
+      />
+      <div className="text-xs font-bold text-cream/80">{iso.reason}</div>
+    </div>
+  );
+}
+
+function Squeeze() {
+  const charts = useCharts();
+  const [id, setId] = useState('home-40bb');
+  const chart = charts[id]!;
+  const spots = chart.squeezeSpots();
+  const seats = [...new Set(spots.map((x) => x.seat))];
+  const [seatPick, setSeat] = useState('BTN');
+  const seat = seats.includes(seatPick) ? seatPick : seats[0]!;
+  const [callers, setCallers] = useState(1);
+  const c = chart.squeeze(seat, callers) ? callers : 1;
+  const spot = chart.squeeze(seat, c)!;
+  const [open, setOpen] = useState(id.startsWith('home') ? 4 : 2.5);
+  const size = squeezeSize(open, c, seat !== 'SB' && seat !== 'BB');
+  return (
+    <div className="space-y-2">
+      <ChipGroup options={Object.values(charts).map((x) => ({ value: x.id, label: x.name.split(',')[0]! }))} value={[id]} onChange={(v) => setId(v[0]!)} />
+      <ChipGroup options={seats.map((x) => ({ value: x, label: x }))} value={[seat]} onChange={(v) => setSeat(v[0]!)} />
+      <Slider label="Callers" value={c} min={1} max={2} onChange={setCallers} format={(v) => (v >= 2 ? '2+' : '1')} />
+      <Slider label="Open size" value={open} min={2} max={6} step={0.5} onChange={setOpen} format={bbf} />
+      <StrategyGrid visual={strategyVisualFor(spot, `${chart.name} · ${seat} squeeze vs ${c >= 2 ? '2+' : 1} caller${c === 1 ? '' : 's'} (approximation)`)} />
+      <Readout items={[['Squeeze', pct(rangeFraction(spot.ranges['3bet']!), 1)], ['Call', pct(rangeFraction(spot.ranges.call!), 0)], ['Squeeze size', bbf(size.best)]]} />
+      <div className="text-xs font-bold text-cream/80">{size.reason}</div>
+    </div>
+  );
+}
+
+function Straddle() {
+  const charts = useCharts();
+  const [id, setId] = useState('home-40bb');
+  const chart = charts[id]!;
+  const [stack, setStack] = useState(chart.json.stackBb);
+  const v = straddleView(chart.seats, stack);
+  return (
+    <div className="space-y-2">
+      <ChipGroup options={Object.values(charts).map((x) => ({ value: x.id, label: x.name.split(',')[0]! }))} value={[id]} onChange={(val) => setId(val[0]!)} />
+      <Slider label="Stacks" value={stack} min={20} max={200} step={5} onChange={setStack} format={bbf} />
+      <Readout items={[['Stacks in straddles', `${v.effectiveStack.toFixed(1)}`], ['First to act', v.preflopOrder[0]!], ['Acts last preflop', `${v.preflopOrder[v.preflopOrder.length - 1]!} (straddler)`]]} />
+      <div className="grid grid-cols-3 gap-1 text-center text-xs font-bold">
+        {v.preflopOrder.map((seatName) => (
+          <div key={seatName} className="rounded-lg border-2 border-ink bg-ink/40 px-1 py-1">
+            <div className="font-display text-sm text-gold-300">{seatName}</div>
+            <div>plays like {v.seatMap[seatName]}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const EXAMPLES: Record<ExampleId, () => ReactElement> = {
+  limpers: Limpers,
+  squeeze: Squeeze,
+  straddle: Straddle,
   'hand-rankings': HandRankings,
   positions: Positions,
   'min-raise': MinRaise,

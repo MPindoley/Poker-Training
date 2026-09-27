@@ -21,6 +21,8 @@ function lastActionText(e: ActionEvent | undefined): string | null {
       return e.allIn ? 'All-in' : `Raise ${bbText(e.to)}`;
     case 'post-sb':
       return 'SB';
+    case 'post-straddle':
+      return 'Straddle';
     case 'post-bb':
       return 'BB';
   }

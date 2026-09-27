@@ -9,16 +9,16 @@ Baseline (before starting): 462 tests pass, typecheck clean, build OK.
 - [x] Engine: spot kinds vsLimpers / squeeze / vsLimpRaise / vs4bet in charts.ts
 - [x] Ranges for the new spots in all three chart JSON files (home-40bb most careful), with principle comments
 - [x] Sizing: iso and squeeze sizes with reasons (reuse sizing.ts)
-- [ ] Straddle support (table setting, seat shift, straddler = "big blind" for spot purposes) — engine mapping done (preflop/straddle.ts); table/game wiring pending
+- [x] Straddle support (table setting, seat shift, straddler = "big blind" for spot purposes) (engine: preflop/straddle.ts + holdem straddle post/option; Play setting; coach reads straddled seats)
 - [x] solverImport: new spot keys, parser, aliases, tests
 - [x] reasons.ts: one-line reason for every new answer
 - [x] Engine tests (coverage of seats/limper counts, combo counts, iso nesting, squeeze ⊆ 3-bet width, straddle shift, import round-trip)
-- [ ] Drills preflop.limpers / preflop.squeeze / preflop.vs4bet + trainer screen, routes, skills, daily, warm-up (home weights limpers)
-- [ ] Range Editor and Paint the Range support new spots
-- [ ] Play: limping bots (station, efls, gambler); coach uses new charts
-- [ ] Hand logger preflop grading uses new charts
-- [ ] Leak finder: overlimping iso hands, iso too small, limp-calling raises
-- [ ] Learn: limpers lesson example + drill links; new "Squeezing" and "Straddles" lessons; glossary terms
+- [x] Drills preflop.limpers / preflop.squeeze / preflop.vs4bet + trainer screen, routes, skills, daily, warm-up (home weights limpers)
+- [x] Range Editor and Paint the Range support new spots
+- [x] Play: limping bots (station, efls, gambler); coach uses new charts
+- [x] Hand logger preflop grading uses new charts
+- [x] Leak finder: overlimping iso hands, iso too small, limp-calling raises
+- [x] Learn: limpers lesson example + drill links; new "Squeezing" and "Straddles" lessons; glossary terms
 
 ## Phase 2: Logging hands with more than one opponent
 - [ ] Engine: N-player LoggedHand shape, actor = player id, straddle/limpers context
@@ -78,7 +78,11 @@ Baseline (before starting): 462 tests pass, typecheck clean, build OK.
 - Limp-raise calls are kept inside the 1-limper overlimp range of the group, so they are valid for every seat in the group (a test enforces it).
 - Straddle mapping: each non-blind seat reads as the chart seat with the same number of players left to act (one seat tighter); both real blinds read as SB; the straddler reads as BB; stacks are measured in straddles.
 
+- Loose-passive archetypes (station, EFLS, gambler) now open-limp part of their raising hands too (`OPEN_LIMP_SHARE` in game/bots.ts), so limper spots come up at the Play table.
+- Hand logger: a new optional `limpers` field on a logged hand counts limpers who weren't logged as players; preflop spots are classified by the shared `classifyPreflopDecision` (preflop/line.ts), which Phase 2 reuses for N players.
+
 ## Open questions for Matt
+- Home-game limper / squeeze / 4-bet ranges (src/data/ranges/home-40bb.json) are my best judgment for a loose-passive 40bb game. Please sanity-check especially: iso ranges vs 1 limper from the button (44+, A7s+, …) and the value-only squeeze ranges.
 
 ## Final report
 (written at the end)

@@ -53,6 +53,18 @@ const BET_SIZES: Partial<Record<ArchetypeId, [number, number]>> = {
   tag: [0.5, 0.75],
 };
 
+/**
+ * Share of a bot's first-in RAISING hands it open-limps instead (on top of its normal limping range,
+ * VPIP − PFR). Loose-passive home-game types limp a lot, so the limper spots come up at the table.
+ */
+export const OPEN_LIMP_SHARE: Partial<Record<ArchetypeId, number>> = { station: 0.5, efls: 0.5, gambler: 0.3 };
+
+/** Preflop bet unit: the straddle when there is one, else the big blind. */
+export function preflopUnit(s: HandState): number {
+  const st = s.log.find((e) => e.type === 'post-straddle');
+  return st ? Math.max(s.bb, st.to) : s.bb;
+}
+
 function raiseTo(_s: HandState, to: number): PlayerAction {
   return { type: 'raise', to };
 }
@@ -68,10 +80,12 @@ export function botDecision(s: HandState, bot: BotProfile, rng: Rng): PlayerActi
     const p = handPercentile(holeLabel(me.hole));
     const raises = s.log.filter((e) => e.street === 'preflop' && (e.type === 'raise' || e.type === 'bet')).length;
     const limpers = s.log.filter((e) => e.street === 'preflop' && e.type === 'call').length;
-    const isBB = la.seat === s.bbSeat;
+    const isBB = la.seat === s.bbSeat || la.seat === s.straddleSeat;
+    const unit = preflopUnit(s);
     const bigShove = la.toCall >= 0.4 * (me.stack + me.bet);
     if (raises === 0) {
-      if (p < st.pfr) return raiseTo(s, s.bb * ((OPEN_SIZE[bot.archetype ?? 'tag'] ?? 3) + limpers));
+      const limpInstead = limpers === 0 && !isBB && rng() < (OPEN_LIMP_SHARE[bot.archetype ?? 'tag'] ?? 0);
+      if (p < st.pfr && !limpInstead) return raiseTo(s, Math.max(la.minTo, unit * ((OPEN_SIZE[bot.archetype ?? 'tag'] ?? 3) + limpers)));
       if (p < st.vpip && !isBB) return { type: 'call' };
       return { type: la.canCheck ? 'check' : 'fold' };
     }
