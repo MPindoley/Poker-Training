@@ -22,6 +22,8 @@ import { ReplaySpotScreen } from './screens/train/ReplaySpotScreen';
 import { ExploitLabScreen } from './screens/exploit/ExploitLabScreen';
 import { ProfileEditorScreen } from './screens/exploit/ProfileEditorScreen';
 import { ExploitDrillScreen } from './screens/exploit/ExploitDrillScreen';
+import { TableScreen } from './screens/play/TableScreen';
+import { SessionSummaryScreen } from './screens/play/SessionSummaryScreen';
 
 /** Full-screen routes (drills, the table) hide the tab bar so nothing covers the controls. */
 const IMMERSIVE = [/^\/train\/[^/]+\/play/, /^\/play\/table/];
@@ -60,6 +62,8 @@ export default function App() {
                 <Route path="/train/exploit/profile/:id" element={<ProfileEditorScreen />} />
                 <Route path="/train/exploit/play" element={<ExploitDrillScreen />} />
                 <Route path="/play" element={<PlayScreen />} />
+                <Route path="/play/table" element={<TableScreen />} />
+                <Route path="/play/summary" element={<SessionSummaryScreen />} />
                 <Route path="/review" element={<ReviewScreen />} />
                 <Route path="/learn" element={<LearnScreen />} />
                 <Route path="/styleguide" element={<StyleguideScreen />} />

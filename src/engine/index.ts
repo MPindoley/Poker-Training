@@ -17,3 +17,4 @@ export * from './preflop';
 export * from './postflop';
 export * from './strategy';
 export * from './exploit';
+export * from './game';
