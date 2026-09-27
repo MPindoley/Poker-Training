@@ -37,6 +37,7 @@ export const UNIT5: Unit = {
         { prompt: 'Why weight hands in a range?', choices: ['Some hands take an action more often than others', 'All hands are equally likely'], answer: 0, why: 'A player may bet a draw half the time and a set almost always.' },
       ],
       drill: { route: '/train/postflop/play?theme=reading', label: 'Hand reading drills' },
+      moreDrills: [{ route: '/train/lab?p=h:AhQd~r:AA%2CKK%2CAQ%2C77%2CQJs&b=Qc7s2h', label: 'Range Lab: what beats you' }],
     },
     {
       id: 'narrowing',

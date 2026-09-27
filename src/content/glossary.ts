@@ -1,5 +1,5 @@
 /** Searchable glossary. Look-alike terms carry an explicit “vs” note so they’re never confused. */
-import { bluffBreakeven, classCombos, hitProbability, isoSize, minimumDefenseFrequency, requiredEquity, squeezeSize, stackToPotRatio, straddleView, STRADDLE_BB } from '../engine';
+import { canonicalFlop, parseCardIndices, preflopImageFactor, bluffBreakeven, classCombos, hitProbability, isoSize, minimumDefenseFrequency, requiredEquity, squeezeSize, stackToPotRatio, straddleView, STRADDLE_BB } from '../engine';
 import type { Dyn } from './learn/types';
 import { pct } from './learn/fmt';
 
@@ -69,7 +69,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   },
   {
     term: 'Straddle',
-    definition: 'A voluntary blind (usually 2bb) posted by the player after the big blind; they act last preflop.',
+    definition: 'A voluntary extra blind (usually twice the big blind) posted by the player after the big blind; they act last preflop.',
     example: () => `40bb stacks with a ${STRADDLE_BB}bb straddle play like ${straddleView(['UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'], 40).effectiveStack}bb stacks.`,
     related: ['Big blind (BB)'],
   },
@@ -84,6 +84,24 @@ export const GLOSSARY: GlossaryEntry[] = [
     definition: 'The re-raise after a 4-bet. At normal stack depths it is usually all-in.',
     vs: 'vs 4-bet: a 4-bet re-raises a 3-bet; a 5-bet re-raises the 4-bet.',
     related: ['3-bet'],
+  },
+  {
+    term: 'Table image',
+    definition: 'How the other players see you, from what they’ve watched: how many hands you play, how often you bet, and what you’ve shown down. It fades as they see new hands.',
+    example: () => `In the app’s model, a regular who sees you as Tight and Feared calls your preflop raises about ${pct(1 - preflopImageFactor('tight-feared', 1), 0)} less often.`,
+    related: ['VPIP / PFR'],
+  },
+  {
+    term: 'Solver',
+    definition: 'Software that computes a game-theory strategy for a spot: how often each hand should take each action. Felt Academy can import its output; everything else is labelled as a chart or model estimate.',
+    related: ['Suit isomorphism'],
+  },
+  {
+    term: 'Suit isomorphism',
+    definition: 'Boards that only differ by which suit is which play the same, so one solved spot covers all of them.',
+    example: () =>
+      `As 7h 2c and Ad 7s 2h are the same spot: both map to ${canonicalFlop(parseCardIndices('As7h2c')).key === canonicalFlop(parseCardIndices('Ad7s2h')).key ? 'one' : 'different'} key (${canonicalFlop(parseCardIndices('As7h2c')).key}).`,
+    related: ['Solver', 'Rainbow'],
   },
   { term: 'Kicker', definition: 'An unpaired side card that breaks ties between equal hands.' },
   { term: 'Limp', definition: 'Just calling the big blind preflop instead of raising.' },

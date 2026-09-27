@@ -37,7 +37,7 @@ export const VENUE_KINDS: Record<Venue, Record<SkillArea, readonly string[]>> = 
     // Home games start most pots with limpers: listed three times so limper spots come up about half the time.
     preflop: ['preflop.limpers', 'preflop.limpers', 'preflop.limpers', 'preflop.squeeze', 'preflop.flash', 'preflop.defense'],
     postflop: ['postflop.short', 'postflop.value', 'postflop.facing', 'postflop.multiway'],
-    exploits: ['exploit.efls', 'exploit.image'],
+    exploits: ['exploit.efls', 'exploit.image', 'exploit.imageShift'],
     reading: ['postflop.reading', 'math.combos'],
     equity: ['equity.guess'],
   },
@@ -45,7 +45,7 @@ export const VENUE_KINDS: Record<Venue, Record<SkillArea, readonly string[]>> = 
     math: ['math.potodds', 'math.mdf', 'math.ev', 'math.bluff'],
     preflop: ['preflop.flash', 'preflop.defense', 'preflop.sizing', 'preflop.squeeze', 'preflop.vs4bet', 'preflop.limpers'],
     postflop: ['postflop.cbet', 'postflop.facing', 'postflop.checkraise', 'postflop.turn', 'postflop.river'],
-    exploits: ['exploit.efls', 'exploit.image'],
+    exploits: ['exploit.efls', 'exploit.image', 'exploit.imageShift'],
     reading: ['postflop.reading', 'math.combos'],
     equity: ['equity.guess'],
   },

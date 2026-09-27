@@ -62,12 +62,12 @@ Baseline (before starting): 462 tests pass, typecheck clean, build OK.
 - [x] `npm run audit:strategy` → reports/strategy-audit.md
 
 ## Phase 7: Tie together and check
-- [ ] Wiring: routes, skills, SRS, daily, quick drill, warm-ups, achievements, profile
-- [ ] Glossary / lesson links; content tests pass
-- [ ] CLAUDE.md updated
-- [ ] Hardcoded-number audit
-- [ ] 390px screenshots of every new screen
-- [ ] Final test / typecheck / build; push branch (no merge)
+- [x] Wiring: routes, skills, SRS, daily, quick drill, warm-ups, achievements, profile
+- [x] Glossary / lesson links; content tests pass
+- [x] CLAUDE.md updated
+- [x] Hardcoded-number audit
+- [x] 390px screenshots of every new screen
+- [x] Final test / typecheck / build; push branch (no merge)
 
 ## Decisions
 - Branched from the PR #2 branch (postflop section, not yet merged) because the stated 462-test baseline includes it. Merging this branch into main also brings in PR #2's changes.
@@ -110,4 +110,124 @@ Baseline (before starting): 462 tests pass, typecheck clean, build OK.
 - The preflop Solver Import screen (older, from before this pack) has "CSV example" / "JSON example" buttons that fill in placeholder frequencies (e.g. A5s 50%). They're only format examples, but if you apply one, those spots get labelled "Solver data". Should I remove the buttons or make them un-importable like the postflop examples?
 
 ## Final report
-(written at the end)
+
+### 1. What was built
+
+**Phase 1: home-game preflop.** The charts now cover the spots home games are made of:
+- facing 1, 2 or 3+ limpers (iso-raise, overlimp, or complete from the small blind),
+- squeezing after an open and callers,
+- facing a raise after you limped,
+- facing a 4-bet.
+
+Each has its own drill (Limpers, Squeeze, Facing 4-bets). There are sizing rules for iso-raises and squeezes, and every answer comes with a one-line reason.
+
+Straddles work at the Play table and in the hand logger: seats read one position tighter, and stacks are measured in straddles.
+
+This preflop work is wired into:
+- the Range Editor and Paint the Range,
+- the Play bots (loose players now limp) and the coach,
+- the hand logger and the leak finder (three new leaks),
+- three new lessons, and new glossary terms.
+
+**Phase 2: hands with several opponents.** The hand logger records any number of opponents, each with their own stack, profile and shown cards. It knows the turn order (including the straddle), all-ins and side pots.
+
+Analysis narrows each opponent's range separately and grades you against everyone still in the hand. It also shows "at the time" (against their ranges) next to "what they actually had". Old saved hands migrate automatically, including in backups.
+
+**Phase 3: live table tracker.** At `/review/live`, you tap VPIP, raises, c-bets, folds and showdowns for each player during a real game. It has:
+- undo,
+- a dark, discreet screen that keeps the phone awake and works offline,
+- a bookmark for any hand, which opens the logger later with the details already filled in.
+
+When you end a session, it saves your cash-out and updates each player's profile, weighted by sample size. The Exploit Lab gains "Player cards" with the top reads per player.
+
+**Phase 4: bots react to your table image.** The table sees what you show it: how many pots you play, how often you bet, big hands and bluffs shown at showdown, and long folding streaks. Your image is one of Tight and Feared, Solid, Loose, Wild / Bluffer or Card Dead, and it fades over about 30 hands.
+
+Each bot's reactivity scales how it responds to your bets:
+- Tight and Feared: they fold more early, but are stickier on the turn and river.
+- Wild: they call much wider.
+
+The Home Game preset starts you as Tight and Feared. Play options add an image meter, plus a hard mode that hides the meter and the coach. The coach adds a one-line image tip, and the hand review and session summary note when your image changes. There is a new Exploit Lab pack, "Image Shifts", and the Table image lesson has an interactive example.
+
+**Phase 5: Range Lab** (`/train/lab`, the top card on Train).
+- **Setup:** 2–6 players, each a hand or a range. A range can be typed, painted, or taken from any chart spot or player profile. The board steps through flop, turn and river, and dead cards are optional.
+- **Results, computed in the worker:**
+  - equity, win % and tie %,
+  - how each range splits into hand buckets,
+  - what beats you, as a tappable list,
+  - blockers, with combo counts before and after,
+  - range and nut advantage in one plain sentence,
+  - a 52-card next-card heat grid with the best and worst cards.
+- **Guess mode:** guess your equity first to earn XP. It feeds a new sixth radar area, **Equity Intuition**, together with a new multiple-choice drill, **Equity Eye**, which sessions and Daily Training use.
+- **Saving:** scenarios can be saved by name and shared as links.
+
+**Phase 6: how sure each grade is.**
+- **Confidence:** every graded postflop, exploit and review decision is labelled **Clear**, **Close spot** or **Depends on reads**. "Depends on reads" means the best play changes when villains are made a bit looser or tighter, or when equity realization moves to the ends of its range. Preflop answers get Clear or Close, based on how mixed the chart is.
+- **Source:** every answer says where it comes from: **Solver data**, **Chart (approximation)** or **Model estimate**.
+- **Weighting:** a mistake in a close or read-dependent spot costs half as much XP and counts half in the leak finder.
+- **Postflop solver import** (`/train/postflop/import`):
+  - a documented JSON/CSV format (see README),
+  - suit-isomorphic flops are treated as the same spot,
+  - matching drill and review spots are graded from the imported frequencies,
+  - hand-made FORMAT EXAMPLE files that the importer refuses.
+- **Audit:** `npm run audit:strategy` writes a 200-spot grading report to `reports/strategy-audit.md`.
+
+**Phase 7: tying it together.**
+- Wiring: every new drill kind is in routes, the skill map, spaced repetition (through its skill keys), Daily Training, Quick Drill and both warm-ups.
+- New achievements: Iso King, Scout and Equity Eye.
+- The Profile screen has quick stats that link to the new tools.
+- New glossary terms (Table image, Solver, Suit isomorphism) and Range Lab links from three lessons.
+- CLAUDE.md is updated.
+- The hardcoded-number audit fixed three "2bb" straddle labels.
+- Screenshots of all 22 new or changed screens at 390×844: no console errors and no horizontal scrolling.
+
+Tests went from 462 to 616. Typecheck and build are clean.
+
+### 2. Approximations and judgment calls (and where to change them)
+
+| What | Where |
+|---|---|
+| Home-game limper, squeeze, limp-raise and 4-bet ranges | `src/data/ranges/*.json` (see each file's `notes`) |
+| Iso and squeeze sizes | `src/engine/preflop/sizing.ts` |
+| Straddle seat mapping | `src/engine/preflop/straddle.ts` |
+| How often loose bots open-limp | `OPEN_LIMP_SHARE` in `src/engine/game/bots.ts` |
+| Leak thresholds | `src/engine/review/leaks.ts` (`ISO_SMALL_MARGIN_BB`) |
+| Live-tracker stat definitions (WTSD uses hands played; aggression uses raises ÷ calls) | `src/engine/live/session.ts` |
+| Profile update speed (n / (n + 20)) and the 10-sample confidence mark | `src/engine/live/session.ts`, `exploit/profiles.ts` |
+| Table image window, thresholds, shifts per street, bot reactivity | `src/engine/image/image.ts` (`IMAGE_WINDOW_HANDS`, `IMAGE_THRESHOLDS`, `IMAGE_STICKINESS`, `ARCHETYPE_REACTIVITY`, `BLUFF_MEMORY_HANDS`, `CARD_DEAD_HANDS`) |
+| Confidence margin and alternate assumptions | `src/engine/strategy/confidence.ts` (`CLEAR_MARGIN_POT`, `ALTERNATES`, `MISTAKE_WEIGHT`) |
+| Preflop "clear" threshold | `PREFLOP_CLEAR_FREQ` in `src/engine/preflop/drills.ts` |
+| Solver grading thresholds | `src/engine/postflop/solverImport.ts` (`SOLVER_ACCEPTABLE_FREQ`, `SOLVER_CLEAR_FREQ`, `FACING_MATCH_TOLERANCE`) |
+| Guess-mode bands | `src/engine/lab/lab.ts` (`EQUITY_GUESS_BEST`, `EQUITY_GUESS_OK`) |
+| Next-card explorer accuracy (Monte Carlo, 6,000 run-outs per card) | `src/engine/lab/lab.ts` (`nextCardGrid`) |
+| Warm-up time shares, including the new Equity Intuition area | `src/engine/meta/sessions.ts` (`WARMUP_SHARES`) |
+
+All postflop grades are still one-street model estimates (`villainModel.ts` + `rules.ts`). No solver numbers were invented anywhere.
+
+### 3. Open questions for Matt
+
+See "Open questions for Matt" above:
+- home-game ranges to sanity-check,
+- table-image strength,
+- which solver you use (so a real converter can be added),
+- whether to remove the preflop importer's placeholder example buttons.
+
+### 4. What looks questionable in the strategy audit (`reports/strategy-audit.md`)
+
+- **C-bets are never "Clear".** In 14 of 23 c-bet spots, the c-bet rule's Best and the one-street EV estimate disagree. The EV estimate almost always prefers a bigger bet than the rule. Those spots are labelled "Depends on reads", which is honest, but it means c-bet grades rest on the rules in `rules.ts`, not the EV.
+  - The one-street EV ignores later streets and range protection, so I'd trust the rule.
+  - Imported solver data would settle it.
+- **About 39% of spots are "Close".** The top options are often within 10% of the pot. Mistake grades there, whose tolerance is 4% of the pot, are now softened. You may want a wider `evTolerance` if close-spot mistakes feel harsh.
+- **"Monster" is a category, not relative strength.** The audit flagged river spots where Best is Check with two pair or better, for example AK with two pair on K-4-5-A-2 facing a possible wheel (62% equity; check beat a half-pot bet by only about 1bb).
+  - Multi-way examples had a straight with 29% equity on a paired, three-flush board.
+  - These grades are defensible from the equity, but the "Your hand: Monster" label can read oddly. Consider relabelling by equity on scary boards.
+- **Facing-bet spots are almost all Clear** (19 of 22), and none depends on reads. That is plausible, because pot odds dominate those decisions.
+
+### 5. How to try it and how to merge
+
+- **Branch:** `feature/home-game-pack`, pushed to GitHub. A Vercel preview builds for it if the Vercel GitHub integration is on; the link appears on the pull request.
+- **Locally:** `git checkout feature/home-game-pack && npm install && npm run dev`, then open the printed LAN address on your phone. `npm test`, `npm run typecheck` and `npm run audit:strategy` also work.
+- **Base:** the branch was built on top of PR #2 (the bigger postflop section), so merging it also brings in PR #2.
+  - Simplest path: merge PR #2 first, then the Home Game Pack pull request. It shows only this pack once PR #2 is in.
+  - Alternatively, merge the Home Game Pack pull request straight into `main`; that includes both.
+- **To merge:** open the draft pull request on GitHub → "Ready for review" → "Merge". From the command line: `git checkout main && git merge --no-ff feature/home-game-pack && git push`.
+- **After merging:** Vercel deploys `main` to https://poker-training-xi.vercel.app/. On your iPhone, reopen the home-screen app once to pick up the update.

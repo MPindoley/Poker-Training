@@ -61,25 +61,55 @@ Reuse these; extend them rather than restyling ad hoc. All are shown on the `/st
 - `postflop` — spot generator (heads-up to 4-way, barrel lines, facing a bet after callers, facing a
   check-raise), `turnCard` (what a new card changed), drill packs incl. check-raises, turn, river, multi-way.
 - `preflop/solverImport` — JSON/CSV solver output → chart overrides (`/train/preflop/import`); imported
-  spots replace the built-in charts everywhere (drills, coach, Play).
+  spots replace the built-in charts everywhere (drills, coach, Play). `Chart.sourceOf(path)` says whether a
+  spot's ranges came from an import (source label "Solver data") or the chart.
+- `preflop` home-game spots: `vsLimpers` (iso-raise / overlimp by 1, 2, 3+ limpers), `squeeze` (1 / 2+ callers),
+  `vsLimpRaise`, `vs4bet`, keyed by seat group in each chart JSON (with a `notes` object explaining each
+  section); `sizing` (`isoSize`, `squeezeSize`), `straddle` (`straddleView`: seats read one tighter, stack in
+  straddles), `line` (`classifyPreflopDecision`).
+- `review/handLog` — logged hands v2: `players[]` (hero + any number of opponents, optional profile),
+  `replayAmounts` (turn order, straddle, all-ins, side pots), `analyzeLoggedHand` (per-opponent ranges and
+  models, multi-way equity, "what they actually had"). Old v1 hands migrate (`migrateLoggedHand`).
+- `live/session` — live table tracker: tap events with undo, `computeObservedStats` (sample sizes,
+  `CONFIDENT_SAMPLES`), `applySession` (moves profiles by n/(n+20)), `liveRead`.
+- `image` — hero's table image (moving averages over ~30 hands, shown bluffs, fold streaks) → label
+  (Tight and Feared, Solid, Loose, Wild, Card Dead); `applyImage` shifts a bot's model per street by
+  `IMAGE_STICKINESS` × its `imageReactivity` (0 = none). `imageEventsFromHand` reads only what the table saw.
+- `lab` — Range Lab: `runLab` (equity, bucket breakdowns, what beats you, blockers, range/nut advantage),
+  `nextCardGrid`, `chartRangeOptions`, share links (`encodeScenario` / `decodeScenario`), guess grading;
+  `lab/drills` = Equity Eye multiple-choice drill (`equity.guess`).
+- `strategy/confidence` — Clear / Close spot / Depends on reads (`CLEAR_MARGIN_POT`, `ALTERNATES` re-runs via
+  `analyzeSpot(..., { confidence: true })`), source labels (Solver data / Chart (approximation) / Model
+  estimate), `MISTAKE_WEIGHT` (XP and leak weighting).
+- `postflop/solverImport` — `felt-postflop-v1` flop strategies (JSON/CSV, documented in README), suit
+  isomorphism (`canonicalFlop`, `canonicalHand`), `lookupSolverSpot`, `applySolverGrades` (Best = most
+  frequent, Acceptable ≥ `SOLVER_ACCEPTABLE_FREQ`). `public/examples/postflop-FORMAT-EXAMPLE.*` are hand-made
+  layout examples (`"example": true`) that the importer refuses.
 
 ## Progression (`src/engine/meta`, pure)
-- `skills` (5 radar areas; each drill kind maps to one; smoothed accuracy), `xp` (answer XP × difficulty,
+- `skills` (6 radar areas incl. Equity Intuition; each drill kind maps to one; smoothed accuracy), `xp` (answer XP × difficulty,
   round accuracy bonus), `arenas` (level-gated, each unlocks a table theme), `cosmetics` (card backs, felts,
   chip sets, themes; `openChest`; `resolveLoadout`), `daily` (3 tasks from the weakest areas, seeded by day),
   `sessions` (Quick Drill / Warm-Up plans), `achievements` (pure checks over a snapshot).
 - State: `rewardsStore` (cosmetics, chests, achievements, daily counts), `eventsStore` (level-up queue).
   `ProgressionHost` (mounted in App) turns milestones into chests and celebrations; it waits for
-  `useProgressHydrated()` so it never acts on empty pre-IndexedDB state.
+  `useProgressHydrated()` so it never acts on empty pre-IndexedDB state. Other stores: `labStore` (saved
+  Range Lab scenarios, guess history), `liveStore` (live tracker), `postflopSolverStore` (flop imports).
+  Achievements include Iso King, Scout and Equity Eye.
 - Rewards are cosmetic only. Sounds are synthesised (`lib/sound.ts`), haptics in `lib/haptics.ts`;
   `GameButton` clicks and `FeedbackBanner` grades play them automatically.
 
 ## App structure (bottom tab bar)
 - **Home** (`/`): level, arena, streak, Daily Training (3 tasks), chests, Quick Drill / Pre-Game Warm-Up /
   Log Last Night's Hands.
-- **Train** (`/train`): trainer modules — Math, Preflop, Postflop, Exploit Lab.
-- **Play** (`/play`): simulated table vs bots with a coach.
-- **Review** (`/review`): log real hands and sessions, see leaks.
+- **Train** (`/train`): Range Lab card (`/train/lab`, share links carry the spot in the query; `?guess=1`
+  opens guess mode) and trainer modules — Math (incl. Equity Eye), Preflop (incl. limpers / squeeze / 4-bets,
+  solver import), Postflop (incl. `/train/postflop/import`), Exploit Lab (incl. Image Shifts pack and
+  `/train/exploit/cards` player cards).
+- **Play** (`/play`): simulated table vs bots with a coach. Options: Home Game preset (starts you Tight and
+  Feared), UTG straddle, table-image meter, hard mode (no coach, no meter).
+- **Review** (`/review`): log real hands (any number of opponents) and sessions, see leaks; live table tracker
+  at `/review/live` (immersive: no tab bar, celebrations held until you leave).
 - **Learn** (`/learn`): lessons and glossary.
 - `/profile`: skill radar, arenas, achievements, cosmetics locker, settings (linked from Home).
 - `/train/session?type=quick|warmup&venue=home|casino`: mixed sessions built from existing drills.
@@ -99,7 +129,8 @@ Reuse these; extend them rather than restyling ad hoc. All are shown on the `/st
 ## Commands
 - `npm run dev` — dev server on the LAN (port 5173) for testing on a phone.
 - `npm run build` / `npm run preview` — production build with service worker (port 4173).
-- `npm test` — Vitest (includes a 50-spot exact-vs-Monte-Carlo equity cross-check). `npm run test:coverage` —
+- `npm test` — Vitest (includes a 50-spot exact-vs-Monte-Carlo equity cross-check). `npm run audit:strategy` —
+  200-spot postflop grading report. `npm run test:coverage` —
   engine coverage. `npm run typecheck` — TypeScript.
 - Deploy: see `DEPLOY.md` (Vercel, `vercel.json` has SPA rewrites; iPhone Add to Home Screen steps).
 - `node scripts/make-icons.mjs` — regenerate PNG app icons from `public/icon-source.svg`
@@ -110,3 +141,11 @@ Reuse these; extend them rather than restyling ad hoc. All are shown on the `/st
   descendant and silently disables all mount animations (confetti, dealt cards, toasts).
 - Tap targets must be ≥ 44px (`GameButton` sm is 44px tall; `ChipGroup` chips have `min-w-11`).
 - Service workers only register on `localhost` or HTTPS, so offline mode can't be tested over plain LAN HTTP.
+- Persisted shapes are versioned: bump the store `version`, add a migrator in `src/storage/migrations.ts`
+  (`STORE_VERSIONS` / `MIGRATORS`, also used by backup import) and a test that migrates an old record. New
+  stores must be added to `STORE_KEYS` in `storage/backup.ts` and to `APP_STORES` in `state/progression.ts`.
+- `analyzeSpot` with `confidence: true` costs ~3× (two alternate re-runs); keep it off in hot loops that
+  don't show grades.
+- Engine code must not import from `src/content` (tests for content links live in `src/content`).
+- `npm run audit:strategy` loads the engine through Vite's SSR loader (`scripts/audit-strategy.mjs`) and
+  writes `reports/strategy-audit.md`.

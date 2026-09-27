@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { HERO_ID, replayAmounts, type LogActionType, type LogStreet, type LoggedAction, type LoggedHand, type LoggedPlayer } from '../../engine';
+import { HERO_ID, LOG_STRADDLE_BB, replayAmounts, type LogActionType, type LogStreet, type LoggedAction, type LoggedHand, type LoggedPlayer } from '../../engine';
 import { useHandLog } from '../../state/handLogStore';
 import { useProfiles } from '../../state/profilesStore';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -197,7 +197,7 @@ export function HandLoggerScreen() {
                 value={[String(limpers)]}
                 onChange={(v) => setLimpers(Number(v[0]))}
               />
-              <Toggle label="UTG straddle (2bb)" on={straddle} onChange={setStraddle} />
+              <Toggle label={`UTG straddle (${LOG_STRADDLE_BB}bb)`} on={straddle} onChange={setStraddle} />
               <GameButton color="gold" fullWidth disabled={players.length < 2} onClick={() => setStep('actions')}>
                 {players.length < 2 ? 'Add at least one opponent' : `Next: the action (${players.length} players)`}
               </GameButton>

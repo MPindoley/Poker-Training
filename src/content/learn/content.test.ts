@@ -32,3 +32,13 @@ describe('curriculum', () => {
     });
   }
 });
+
+describe('lesson links into the Range Lab', () => {
+  it('decode to valid scenarios', async () => {
+    const { ALL_LESSONS } = await import('./index');
+    const { decodeScenario } = await import('../../engine');
+    const links = ALL_LESSONS.flatMap((l) => l.moreDrills ?? []).filter((d) => d.route.startsWith('/train/lab?p='));
+    expect(links.length).toBeGreaterThanOrEqual(2);
+    for (const l of links) expect(decodeScenario(l.route.split('?')[1]!)).not.toBeNull();
+  });
+});

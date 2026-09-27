@@ -222,6 +222,14 @@ describe('achievements', () => {
     expect(u).toEqual(expect.arrayContaining(['streak-3', 'streak-7', 'level-10', 'scholar']));
     expect(u).not.toContain('streak-30');
   });
+  it('Iso King, Scout and Equity Eye', () => {
+    expect(unlockedAchievements({ ...empty, kinds: { 'preflop.limpers': { attempts: 80, correct: 49 } } })).not.toContain('iso-king');
+    expect(unlockedAchievements({ ...empty, kinds: { 'preflop.limpers': { attempts: 80, correct: 50 } } })).toContain('iso-king');
+    expect(unlockedAchievements({ ...empty, liveHands: 99 })).not.toContain('scout');
+    expect(unlockedAchievements({ ...empty, liveHands: 100 })).toContain('scout');
+    expect(unlockedAchievements({ ...empty, labGoodGuesses: 20 })).toContain('equity-eye');
+    expect(unlockedAchievements({ ...empty, labGoodGuesses: 19 })).not.toContain('equity-eye');
+  });
 });
 
 describe('resolveLoadout', () => {
