@@ -8,6 +8,7 @@ import { PlayScreen } from './screens/PlayScreen';
 import { ReviewScreen } from './screens/ReviewScreen';
 import { LearnScreen } from './screens/LearnScreen';
 import { StyleguideScreen } from './screens/StyleguideScreen';
+import { DebugEquityScreen } from './screens/DebugEquityScreen';
 
 export default function App() {
   const location = useLocation();
@@ -32,6 +33,7 @@ export default function App() {
                 <Route path="/review" element={<ReviewScreen />} />
                 <Route path="/learn" element={<LearnScreen />} />
                 <Route path="/styleguide" element={<StyleguideScreen />} />
+                <Route path="/debug/equity" element={<DebugEquityScreen />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </div>

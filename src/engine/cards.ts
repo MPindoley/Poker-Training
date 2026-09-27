@@ -53,3 +53,48 @@ export function fullDeck(): Card[] {
   }
   return deck;
 }
+
+// ---------------------------------------------------------------------------
+// Integer card indices (0..51) for the fast paths: index = rankIndex * 4 + suitIndex,
+// where rankIndex 0 = deuce … 12 = ace and suits follow SUITS order (s, h, d, c).
+
+export function cardIndex(card: Card): number {
+  return RANKS.indexOf(card.rank) * 4 + SUITS.indexOf(card.suit);
+}
+
+export function cardFromIndex(index: number): Card {
+  const rank = RANKS[index >> 2];
+  const suit = SUITS[index & 3];
+  if (rank === undefined || suit === undefined || index < 0 || index > 51) {
+    throw new Error(`Invalid card index: ${index}`);
+  }
+  return { rank, suit };
+}
+
+export function indexToString(index: number): string {
+  return cardToString(cardFromIndex(index));
+}
+
+/**
+ * Parse a run of cards such as "AsKd", "As Kd", "As,Kd,7h". Empty input gives [].
+ * Throws on bad codes or duplicates.
+ */
+export function parseCards(text: string): Card[] {
+  const compact = text.replace(/[\s,]+/g, '');
+  if (compact.length % 2 !== 0) throw new Error(`Invalid card list: "${text}"`);
+  const cards: Card[] = [];
+  const seen = new Set<string>();
+  for (let i = 0; i < compact.length; i += 2) {
+    const card = parseCard(compact.slice(i, i + 2));
+    const key = cardToString(card);
+    if (seen.has(key)) throw new Error(`Duplicate card: ${key}`);
+    seen.add(key);
+    cards.push(card);
+  }
+  return cards;
+}
+
+/** Like parseCards but returns integer indices. */
+export function parseCardIndices(text: string): number[] {
+  return parseCards(text).map(cardIndex);
+}

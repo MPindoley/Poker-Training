@@ -44,6 +44,17 @@ Reuse these; extend them rather than restyling ad hoc. All are shown on the `/st
 - `FeedbackBanner` (grade + why + worked math) and `ToastHost` / `toast()` for transient messages.
 - `Celebration` — confetti + coins burst.
 
+## Engine map (`src/engine`)
+- `cards` (Card, parse, integer indices 0..51 = rank*4+suit), `rng` (seedable Mulberry32, shuffle).
+- `evaluator` — 5/6/7-card evaluator; `evaluateIndices` is the fast path (comparable int score),
+  `evaluateHand` adds category, best five cards and a description.
+- `range` — weighted 1326-combo ranges: `parseRange` notation, card removal, grid and notation conversion.
+- `equity` — `calculateEquity(players, { board, dead, iterations, seed })`: exact enumeration up to
+  `maxExactBoards`, else Monte Carlo with a 95% margin. UI must call it via `src/workers/equityClient`
+  (`runEquity`) so it runs in a Web Worker.
+- `outs` (clean/dirty outs vs a range), `texture` (board classifier + `rangeAdvantage`),
+  `odds` (pot odds, MDF, bluff breakeven, EV, implied odds, SPR).
+
 ## App structure (bottom tab bar)
 - **Home** (`/`): daily drills, streak, level, quick-start buttons.
 - **Train** (`/train`): trainer modules — Math, Preflop, Postflop, Exploit Lab.
@@ -51,6 +62,7 @@ Reuse these; extend them rather than restyling ad hoc. All are shown on the `/st
 - **Review** (`/review`): log real hands and sessions, see leaks.
 - **Learn** (`/learn`): lessons and glossary.
 - `/styleguide`: design-system showcase (linked from Home, no tab).
+- `/debug/equity`: hidden equity sanity-check screen (no link anywhere).
 
 ## Accuracy rules (non-negotiable)
 1. **Every number shown to the player must come from computation in `src/engine`**, never hardcoded
