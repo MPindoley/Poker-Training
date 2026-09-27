@@ -27,6 +27,7 @@ import { BB_CHECK_RANGE, LIMP_RANGE, type Player, type Spot } from '../postflop/
 import { analyzeSpot, signedBb, type SpotAnalysis } from '../strategy/analyze';
 import { HERO_LINE_MODEL, forStreet, type VillainModel } from '../strategy/villainModel';
 import { rangeVisual } from '../postflop/drills';
+import { applySolverGrades, buildPostflopDb, type PostflopSolverEntry } from '../postflop/solverImport';
 import type { StrategyVisual } from '../drills/types';
 import { chartAction, type DecisionReview } from '../game/coach';
 
@@ -488,6 +489,8 @@ export interface AnalyzeLoggedOptions {
   stats?: Record<string, PlayerStats>;
   /** Display names per player id. */
   names?: Record<string, string>;
+  /** Imported postflop solver entries: matching flop decisions are graded from them. */
+  solver?: PostflopSolverEntry[];
 }
 
 const VERDICT: Record<Grade, string> = { best: 'right', acceptable: 'reasonable', mistake: 'a mistake' };
@@ -542,6 +545,7 @@ export function analyzeLoggedHand(input: LoggedHand | LoggedHandV1, chart: Chart
   const hero = heroOf(hand);
   const opps = opponentsOf(hand);
   const modelOf = (id: string) => opts.models?.[id] ?? model;
+  const solverDb = opts.solver?.length ? buildPostflopDb(opts.solver) : undefined;
   // Main opponent: the last preflop raiser who isn't hero, else the first opponent to act.
   const mainOpp =
     [...hand.actions].reverse().find((a) => a.street === 'preflop' && a.actor !== hero.id && (a.type === 'raise' || a.type === 'bet'))?.actor ??
@@ -716,7 +720,8 @@ export function analyzeLoggedHand(input: LoggedHand | LoggedHandV1, chart: Chart
             rangeTrail: [],
             model: modelOf(mainId),
           };
-          const analysis = analyzeSpot(spot, { sizes: [0.33, 0.5, 0.75, 1] });
+          const analysis = analyzeSpot(spot, { sizes: [0.33, 0.5, 0.75, 1], confidence: true });
+          applySolverGrades(analysis, spot, solverDb);
           const opt =
             a.type === 'fold'
               ? analysis.options.find((o) => o.action === 'fold')
@@ -765,6 +770,8 @@ export function analyzeLoggedHand(input: LoggedHand | LoggedHandV1, chart: Chart
               equity: eq,
               best: analysis.best.label,
               note: summary,
+              confidence: analysis.confidence,
+              source: analysis.source,
               tags: {
                 facingBet: facing > 0,
                 bucket: analysis.hero.bucket,

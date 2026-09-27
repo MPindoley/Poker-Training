@@ -116,6 +116,21 @@ describe('leak finder', () => {
     expect(turn.cost).toBe(5);
     expect(leaks.find((l) => l.rule.id === 'blind-calls')!.uncosted).toBe(1);
   });
+
+  it('mistakes in close or read-dependent spots weigh half', () => {
+    const leaks = findLeaks([
+      d({ street: 'river', tags: { facingBet: true, actionType: 'call' }, evLost: 4, confidence: 'close' }),
+      d({ street: 'river', tags: { facingBet: true, actionType: 'call' }, evLost: 4, confidence: 'model-dependent' }),
+      d({ evLost: 3, confidence: 'clear' }),
+    ]);
+    const river = leaks.find((l) => l.rule.id === 'river-calls')!;
+    expect(river.cost).toBe(8);
+    expect(river.weightedCost).toBe(4);
+    expect(river.severity).toBe(1);
+    // Weighted: river 4bb (8bb raw) still ranks above the clear 3bb turn fold.
+    expect(leaks.map((l) => l.rule.id)).toEqual(['river-calls', 'turn-folds']);
+    expect(leaks.find((l) => l.rule.id === 'turn-folds')!.weightedCost).toBe(3);
+  });
 });
 
 describe('home-game preflop in logged hands and leaks', () => {

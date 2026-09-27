@@ -109,8 +109,16 @@ export class Chart {
     json: ChartJson,
     private readonly library: Record<string, ChartJson>,
     private readonly overrides: ChartOverrides = {},
+    /** Override keys that came from a solver import (not hand edits). */
+    private readonly imported: ReadonlySet<string> = new Set(),
   ) {
     this.json = json;
+  }
+
+  /** Where a spot's ranges come from: an imported solver strategy, or the built-in / edited chart. */
+  sourceOf(path: string): 'solver' | 'chart' {
+    for (const k of this.imported) if (k.startsWith(`${path}.`) && this.overrides[k] !== undefined) return 'solver';
+    return 'chart';
   }
 
   get id() {
@@ -301,8 +309,13 @@ export class Chart {
   }
 }
 
-export function buildCharts(library: Record<string, ChartJson>, overrides: Record<string, ChartOverrides> = {}): Record<string, Chart> {
-  return Object.fromEntries(Object.values(library).map((j) => [j.id, new Chart(j, library, overrides[j.id] ?? {})]));
+export function buildCharts(
+  library: Record<string, ChartJson>,
+  overrides: Record<string, ChartOverrides> = {},
+  /** Per chart: override keys set by solver imports (for source labels). */
+  imported: Record<string, readonly string[]> = {},
+): Record<string, Chart> {
+  return Object.fromEntries(Object.values(library).map((j) => [j.id, new Chart(j, library, overrides[j.id] ?? {}, new Set(imported[j.id] ?? []))]));
 }
 
 export interface HandStrategy {

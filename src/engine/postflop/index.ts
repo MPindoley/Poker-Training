@@ -4,3 +4,4 @@ export * from './scenario';
 export * from './drills';
 export * from './replay';
 export * from './turnCard';
+export * from './solverImport';

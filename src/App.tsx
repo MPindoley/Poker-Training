@@ -14,6 +14,7 @@ import { LearnScreen } from './screens/LearnScreen';
 import { StyleguideScreen } from './screens/StyleguideScreen';
 import { DebugEquityScreen } from './screens/DebugEquityScreen';
 import { RangeLabScreen } from './screens/train/RangeLabScreen';
+import { PostflopSolverImportScreen } from './screens/train/PostflopSolverImportScreen';
 import { MathTrainerScreen } from './screens/train/MathTrainerScreen';
 import { MathDrillScreen } from './screens/train/MathDrillScreen';
 import { CheatSheetScreen } from './screens/train/CheatSheetScreen';
@@ -76,6 +77,7 @@ export default function App() {
                   <Route path="/train/preflop/paint" element={<PaintRangeScreen />} />
                   <Route path="/train/preflop/editor" element={<RangeEditorScreen />} />
                   <Route path="/train/preflop/import" element={<SolverImportScreen />} />
+                  <Route path="/train/postflop/import" element={<PostflopSolverImportScreen />} />
                   <Route path="/train/postflop" element={<PostflopTrainerScreen />} />
                   <Route path="/train/postflop/play" element={<PostflopDrillScreen />} />
                   <Route path="/train/postflop/replay" element={<ReplaySpotScreen />} />

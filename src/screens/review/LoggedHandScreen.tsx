@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { GRADE_LABEL, formatPercent, heroOf, migrateLoggedHand, opponentsOf, replayAmounts, type LogStreet, type StreetAnalysis } from '../../engine';
+import { CONFIDENCE_LABEL, GRADE_LABEL, formatPercent, heroOf, migrateLoggedHand, opponentsOf, replayAmounts, type LogStreet, type StreetAnalysis } from '../../engine';
 import { useHandLog } from '../../state/handLogStore';
 import { useProfiles } from '../../state/profilesStore';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -121,7 +121,13 @@ export function LoggedHandScreen() {
                         {amt}
                         {a.allIn ? ' (all-in)' : ''}
                       </span>
-                      {d?.review.grade && <span className={`ml-auto rounded-md border-2 border-ink px-1.5 font-display text-xs ${GRADE_BG[d.review.grade]}`}>{GRADE_LABEL[d.review.grade]}</span>}
+                      {d?.review.confidence && (
+                        <span className="ml-auto rounded-md bg-ink/10 px-1 text-[10px] font-bold">
+                          {CONFIDENCE_LABEL[d.review.confidence]}
+                          {d.review.source === 'solver' ? ' · Solver' : ''}
+                        </span>
+                      )}
+                      {d?.review.grade && <span className={`${d.review.confidence ? '' : 'ml-auto '} rounded-md border-2 border-ink px-1.5 font-display text-xs ${GRADE_BG[d.review.grade]}`}>{GRADE_LABEL[d.review.grade]}</span>}
                     </div>
                     {d && (
                       <>

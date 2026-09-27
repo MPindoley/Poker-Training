@@ -3,6 +3,7 @@
  * grading of your actual actions, and all-in adjusted results (luck vs skill).
  */
 import type { ImageLabel } from '../image/image';
+import type { AnswerSource, Confidence } from '../strategy/confidence';
 import { calculateEquity } from '../equity';
 import type { Grade } from '../grading';
 import { formatPercent } from '../math';
@@ -242,6 +243,10 @@ export interface DecisionReview {
   equity: number | null;
   best: string | null;
   note: string;
+  /** How sure the grade is (optional; older saved reviews lack it). */
+  confidence?: Confidence;
+  /** Where the grade came from (optional). */
+  source?: AnswerSource;
 }
 
 export interface HandReview {

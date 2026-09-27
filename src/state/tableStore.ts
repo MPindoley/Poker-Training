@@ -242,7 +242,7 @@ export const useTable = create<TableState>()((set, get) => ({
     set({ coach: { loading: true, analysis: null, preflop: null, error: null } });
     const handNo = hand.handNo;
     const logLen = hand.log.length;
-    analyzeInWorker(spot, { sizes: [0.33, 0.5, 0.75, 1] })
+    analyzeInWorker(spot, { sizes: [0.33, 0.5, 0.75, 1], confidence: true })
       .then((analysis) => {
         const now = get().hand;
         if (now?.handNo === handNo && now.log.length === logLen) set({ coach: { loading: false, analysis, preflop: null, error: null } });
@@ -343,7 +343,7 @@ async function reviewHand() {
       continue;
     }
     try {
-      const analysis = d.analysis ?? (await analyzeInWorker(d.spot!, { sizes: [0.33, 0.5, 0.75, 1] }));
+      const analysis = d.analysis?.confidence ? d.analysis : await analyzeInWorker(d.spot!, { sizes: [0.33, 0.5, 0.75, 1], confidence: true });
       const chosen = matchOption(analysis, ev.type, ev.to);
       const lost = chosen ? Math.max(0, analysis.best.ev - chosen.ev) : null;
       decisions.push({
@@ -354,6 +354,8 @@ async function reviewHand() {
         equity: analysis.heroEquity,
         best: analysis.best.label,
         note: analysis.summary,
+        confidence: analysis.confidence,
+        source: analysis.source,
         tags: {
           facingBet: d.spot!.facingBet !== null,
           bucket: analysis.hero.bucket,

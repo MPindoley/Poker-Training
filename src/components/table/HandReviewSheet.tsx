@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { GRADE_LABEL, IMAGE_BLURBS, IMAGE_NAMES, formatPercent, type HandReview, type HandState } from '../../engine';
+import { CONFIDENCE_LABEL, GRADE_LABEL, IMAGE_BLURBS, IMAGE_NAMES, formatPercent, type HandReview, type HandState } from '../../engine';
 import { GameButton, MiniCard } from '../ui';
 
 const GRADE_BG = { best: 'bg-felt-300 text-ink', acceptable: 'bg-[#6fb2ff] text-ink', mistake: 'bg-ruby text-white' } as const;
@@ -29,7 +29,10 @@ export function HandReviewSheet({ hand, review, onNext, onSummary }: { hand: Han
                 <span className="font-display">
                   {d.street[0]!.toUpperCase() + d.street.slice(1)}: {d.action}
                 </span>
-                {d.grade && <span className={`rounded-md border-2 border-ink px-1.5 font-display text-xs ${GRADE_BG[d.grade]}`}>{GRADE_LABEL[d.grade]}</span>}
+                <span className="flex items-center gap-1">
+                  {d.confidence && <span className="rounded-md bg-ink/10 px-1 text-[10px] font-bold">{CONFIDENCE_LABEL[d.confidence]}</span>}
+                  {d.grade && <span className={`rounded-md border-2 border-ink px-1.5 font-display text-xs ${GRADE_BG[d.grade]}`}>{GRADE_LABEL[d.grade]}</span>}
+                </span>
               </div>
               <div className="text-xs font-semibold text-ink/75">
                 {d.equity !== null && <>Equity {formatPercent(d.equity)} · </>}

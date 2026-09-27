@@ -4,6 +4,7 @@
  * Text fields may contain card tokens like {Ah} which the UI renders as mini cards.
  */
 import type { Grade } from '../grading';
+import type { AnswerSource, Confidence } from '../strategy/confidence';
 
 export type Difficulty = 'bronze' | 'silver' | 'gold' | 'diamond';
 
@@ -78,6 +79,12 @@ export interface Question {
   visual?: StrategyVisual;
   /** Several pictures, e.g. a range shrinking street by street. */
   visuals?: StrategyVisual[];
+  /** How sure the grade is (strategy questions). */
+  confidence?: Confidence;
+  /** Why (margin, or the assumption that flips it). */
+  confidenceNote?: string;
+  /** Where the answer comes from: imported solver data, a chart, or the model. */
+  source?: AnswerSource;
 }
 
 export function bestChoice(q: Question): Choice {

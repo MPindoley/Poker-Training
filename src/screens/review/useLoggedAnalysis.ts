@@ -5,6 +5,7 @@ import { useChartStore } from '../../state/chartStore';
 import { useHandLog } from '../../state/handLogStore';
 import { useProfiles } from '../../state/profilesStore';
 import { analyzeLoggedInWorker } from '../../workers/engineClient';
+import { usePostflopSolver } from '../../state/postflopSolverStore';
 
 export function chartIdFor(h: LoggedHand): string {
   return h.stackBb <= 60 ? 'home-40bb' : 'cash-9max-100bb';
@@ -39,6 +40,7 @@ export function playerName(h: LoggedHand, id: string, profiles: Profile[]): stri
 export function useLoggedAnalysis(raw: LoggedHand | undefined) {
   const overrides = useChartStore((s) => s.overrides);
   const profiles = useProfiles((s) => s.profiles);
+  const solverImports = usePostflopSolver((s) => s.imports);
   const setAnalysis = useHandLog((s) => s.setAnalysis);
   const [state, setState] = useState<{ loading: boolean; result: LoggedHandAnalysis | null; error: string | null }>({ loading: true, result: null, error: null });
   useEffect(() => {
@@ -46,7 +48,7 @@ export function useLoggedAnalysis(raw: LoggedHand | undefined) {
     const hand = migrateLoggedHand(raw);
     let live = true;
     setState({ loading: true, result: null, error: null });
-    analyzeLoggedInWorker(hand, CHART_LIBRARY, overrides, chartIdFor(hand), REGULAR_MODEL, playerOptions(hand, profiles))
+    analyzeLoggedInWorker(hand, CHART_LIBRARY, overrides, chartIdFor(hand), REGULAR_MODEL, { ...playerOptions(hand, profiles), solver: solverImports.flatMap((i) => i.entries) })
       .then((result) => {
         if (!live) return;
         setState({ loading: false, result, error: result.error });

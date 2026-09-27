@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { useEffect, type ReactNode } from 'react';
 import { haptic } from '../../lib/haptics';
 import { sfx } from '../../lib/sound';
-import { GRADE_LABEL } from '../../engine';
+import { CONFIDENCE_LABEL, GRADE_LABEL, SOURCE_LABEL, type AnswerSource, type Confidence } from '../../engine';
 import type { ToastTone } from '../../state/toastStore';
 import { Celebration } from './Celebration';
 import { RichText } from './RichText';
@@ -24,10 +24,22 @@ export interface FeedbackBannerProps {
   /** Play confetti/coins (best) or shake (mistake) on mount. Default true. */
   animate?: boolean;
   className?: string;
+  /** How sure the grade is: shows a small badge ("Clear", "Close spot", "Depends on reads"). */
+  confidence?: Confidence;
+  /** One line on why (shown under the badges). */
+  confidenceNote?: string;
+  /** Where the answer comes from ("Solver data", "Chart (approximation)", "Model estimate"). */
+  source?: AnswerSource;
 }
 
+const CONF_STYLE: Record<Confidence, string> = {
+  clear: 'bg-felt-300 text-ink',
+  close: 'bg-gold-300 text-ink',
+  'model-dependent': 'bg-[#c9a8ff] text-ink',
+};
+
 /** Answer feedback: grade badge, headline, explanation and worked math. */
-export function FeedbackBanner({ tone, title, children, math, animate = true, className = '' }: FeedbackBannerProps) {
+export function FeedbackBanner({ tone, title, children, math, animate = true, className = '', confidence, confidenceNote, source }: FeedbackBannerProps) {
   const t = TONE[tone];
   const shake = animate && tone === 'mistake';
   useEffect(() => {
@@ -58,9 +70,16 @@ export function FeedbackBanner({ tone, title, children, math, animate = true, cl
         <span className={`rounded-lg border-2 border-ink px-2 py-0.5 font-display text-sm ${t.badge}`}>{t.label}</span>
         <span className="text-outline-sm font-display text-xl">{title}</span>
       </div>
+      {(confidence || source) && (
+        <div className="relative mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] font-bold">
+          {confidence && <span className={`rounded-md border-2 border-ink px-1.5 py-0.5 ${CONF_STYLE[confidence]}`}>{CONFIDENCE_LABEL[confidence]}</span>}
+          {source && <span className="rounded-md border-2 border-ink bg-ink/60 px-1.5 py-0.5 text-cream">{SOURCE_LABEL[source]}</span>}
+        </div>
+      )}
       {(children || math) && (
         <div className="relative mt-2 rounded-2xl border-2 border-ink bg-cream p-3 text-sm font-semibold text-ink">
           {children}
+          {confidenceNote && <p className="mt-1.5 text-xs text-ink/70">{confidenceNote}</p>}
           {math && (
             <div className="mt-2 space-y-1 rounded-lg bg-ink px-2.5 py-2 font-mono text-[12px] leading-relaxed text-gold-300">
               {math.map((line, i) => (

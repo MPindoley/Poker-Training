@@ -1,0 +1,7 @@
+# FORMAT EXAMPLE - hand-made, NOT solver output. Placeholder frequencies only; shows the columns.
+pot,positions,stack,flop,actor,facing,hand,action,frequency
+srp,BB-BTN,100,As7h2c,BTN,,AA,check,0.5
+srp,BB-BTN,100,As7h2c,BTN,,AA,bet33,0.5
+srp,BB-BTN,100,As7h2c,BTN,,AhKd,bet33,1
+srp,BB-BTN,100,As7h2c,BB,33,77,call,50%
+srp,BB-BTN,100,As7h2c,BB,33,77,raise3x,50%

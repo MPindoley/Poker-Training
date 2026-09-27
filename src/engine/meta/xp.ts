@@ -1,10 +1,16 @@
 /** XP awards, weighted by difficulty and accuracy. */
 import { DIFFICULTY_INFO, type Difficulty } from '../drills/types';
 import { GRADE_XP, type Grade } from '../grading';
+import { MISTAKE_WEIGHT, type Confidence } from '../strategy/confidence';
 
-/** XP for one answer: the grade's base XP times the difficulty multiplier. */
-export function answerXp(grade: Grade, difficulty: Difficulty): number {
-  return Math.round(GRADE_XP[grade] * DIFFICULTY_INFO[difficulty].xpMultiplier);
+/**
+ * XP for one answer: the grade's base XP times the difficulty multiplier. A mistake in a close or
+ * read-dependent spot is less severe (MISTAKE_WEIGHT), so it earns part of the way toward Acceptable XP.
+ */
+export function answerXp(grade: Grade, difficulty: Difficulty, confidence?: Confidence): number {
+  let base = GRADE_XP[grade];
+  if (grade === 'mistake' && confidence) base += (GRADE_XP.acceptable - GRADE_XP.mistake) * (1 - MISTAKE_WEIGHT[confidence]);
+  return Math.round(base * DIFFICULTY_INFO[difficulty].xpMultiplier);
 }
 
 /** Bonus XP per question at 100% accuracy (scaled by difficulty). */

@@ -93,9 +93,21 @@ export function PostflopTrainerScreen() {
           </GameButton>
         </div>
       </Panel>
+      <Panel tone="night">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="font-display text-xl">Postflop solver import</div>
+            <div className="text-sm font-semibold text-cream/85">Grade matching flop spots from your own solver runs</div>
+          </div>
+          <GameButton color="blue" size="sm" onClick={() => navigate('/train/postflop/import')}>
+            Import
+          </GameButton>
+        </div>
+      </Panel>
       <p className="text-center text-xs font-semibold text-cream/70">
         Grades come from readable rules in src/engine/strategy/rules.ts and the villain model in villainModel.ts (which folds, calls and
-        raises). EVs are simplified one-street estimates.
+        raises). EVs are simplified one-street estimates. Each answer shows how sure the grade is (Clear / Close spot / Depends on reads) and
+        where it comes from (Model estimate, or Solver data for imported flop spots).
       </p>
     </div>
   );

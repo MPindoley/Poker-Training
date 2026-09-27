@@ -72,7 +72,11 @@ export const useChartStore = create<ChartState>()(
 /** All charts with the user's edits applied. */
 export function useCharts(): Record<string, Chart> {
   const overrides = useChartStore((s) => s.overrides);
-  return useMemo(() => buildCharts(CHART_LIBRARY, overrides), [overrides]);
+  const imports = useChartStore((s) => s.solverImports);
+  return useMemo(
+    () => buildCharts(CHART_LIBRARY, overrides, Object.fromEntries(Object.entries(imports ?? {}).map(([id, list]) => [id, list.flatMap((i) => i.keys)]))),
+    [overrides, imports],
+  );
 }
 
 export function useActiveChart(): Chart {

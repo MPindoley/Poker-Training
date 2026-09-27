@@ -1,0 +1,34 @@
+{
+  "format": "felt-postflop-v1",
+  "example": true,
+  "name": "FORMAT EXAMPLE - hand-made, NOT solver output",
+  "WARNING": "This file only shows the layout. The frequencies are placeholders (0, 0.5, 1) typed by hand, not results from any solver. Felt Academy refuses to import it. Export your own solver spots in this shape.",
+  "spots": [
+    {
+      "pot": "srp",
+      "positions": "BB-BTN",
+      "stack": 100,
+      "flop": "As7h2c",
+      "actor": "BTN",
+      "facing": null,
+      "strategy": {
+        "AA": { "check": 0.5, "bet33": 0.5 },
+        "AhKd": { "bet33": 1 },
+        "65s": { "check": 1 }
+      }
+    },
+    {
+      "pot": "srp",
+      "positions": "BB-BTN",
+      "stack": 100,
+      "flop": "As7h2c",
+      "actor": "BB",
+      "facing": 33,
+      "strategy": {
+        "77": { "call": 0.5, "raise3x": 0.5 },
+        "Q7s": { "call": 1 },
+        "KhQh": { "fold": 1 }
+      }
+    }
+  ]
+}

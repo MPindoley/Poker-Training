@@ -54,12 +54,12 @@ Baseline (before starting): 462 tests pass, typecheck clean, build OK.
 - [x] Tests for pure parts
 
 ## Phase 6: Confidence and source labels, postflop solver import
-- [ ] Confidence (clear / close / model-dependent) on postflop, exploit, hand-review grades
-- [ ] Source labels (Solver data / Chart (approximation) / Model estimate)
-- [ ] Postflop solver import format (JSON/CSV), suit isomorphism, grading from frequencies, FORMAT EXAMPLE file, README docs
-- [ ] FeedbackBanner badges; XP and leaks weight by confidence
-- [ ] Postflop import screen
-- [ ] `npm run audit:strategy` → reports/strategy-audit.md
+- [x] Confidence (clear / close / model-dependent) on postflop, exploit, hand-review grades
+- [x] Source labels (Solver data / Chart (approximation) / Model estimate)
+- [x] Postflop solver import format (JSON/CSV), suit isomorphism, grading from frequencies, FORMAT EXAMPLE file, README docs
+- [x] FeedbackBanner badges; XP and leaks weight by confidence
+- [x] Postflop import screen
+- [x] `npm run audit:strategy` → reports/strategy-audit.md
 
 ## Phase 7: Tie together and check
 - [ ] Wiring: routes, skills, SRS, daily, quick drill, warm-ups, achievements, profile
@@ -97,9 +97,17 @@ Baseline (before starting): 462 tests pass, typecheck clean, build OK.
 - The next-card explorer uses Monte Carlo (6,000 run-outs per card) for speed; best/worst lists quote those numbers.
 - A 6th radar area, "Equity Intuition", counts Range Lab guesses (`lab.guess`, Best within 5 points, Acceptable within 10) and a new multiple-choice drill "Equity Eye" (`equity.guess`: your hand vs a real opening range on a random flop), which sessions, warm-ups and Daily Training use. Warm-up shares were rebalanced to make room (10% each venue). New `lab` store (saved scenarios, guess history) is included in backups; it's new, so no migration.
 
+- Confidence (src/engine/strategy/confidence.ts): Clear = best beats runner-up by ≥ 10% of the pot (`CLEAR_MARGIN_POT`) and survives the re-runs; Close = smaller margin; Depends on reads = the best action (action + size class) changes when re-analysed with villains looser (stickiness 1.25) + full realization, or tighter (0.8) + low realization (IP 0.9 / OOP 0.8), or the c-bet rule and EV estimate disagree. Two extra `analyzeSpot` runs ≈ 3× cost (~130 ms per drill question). Preflop: Clear when the chart plays the hand one way ≥ 75% (`PREFLOP_CLEAR_FREQ`), else Close.
+- Source labels: preflop = "Chart (approximation)" unless the spot's ranges came from a solver import (tracked per override key via `Chart.sourceOf`); postflop/exploit/review = "Model estimate" unless a flop spot matches imported postflop data ("Solver data").
+- Mistakes in Close / Depends-on-reads spots count half (`MISTAKE_WEIGHT`): XP moves halfway from Mistake to Acceptable, and leaks rank by weighted cost (`weightedCost`, `severity`).
+- Postflop solver import: format `felt-postflop-v1` (JSON or CSV; documented in README). Suit isomorphism: canonical flop = lexicographically smallest relabelling over all 24 suit permutations; exact combos use the smallest relabelling among the flop's minimising permutations, so every equivalent (flop, combo) pair maps to one key. Solver bet sizes map to the nearest size the drill offers. Heads-up flop spots only. New store `postflop-solver` (in backups; new, so no migration). The FORMAT EXAMPLE files carry `"example": true` and the importer refuses them.
+- `npm run audit:strategy` loads the TypeScript engine through Vite's SSR loader (no new dependency) and writes reports/strategy-audit.md.
+
 ## Open questions for Matt
 - Home-game limper / squeeze / 4-bet ranges (src/data/ranges/home-40bb.json) are my best judgment for a loose-passive 40bb game. Please sanity-check especially: iso ranges vs 1 limper from the button (44+, A7s+, …) and the value-only squeeze ranges.
 - Table image sizes (how much tighter/looser people get and how long a shown bluff is remembered) are my guesses about live home games. Tune `IMAGE_STICKINESS`, `BLUFF_MEMORY_HANDS` and `ARCHETYPE_REACTIVITY` in src/engine/image/image.ts if they feel off at your table.
+- Postflop solver import: I don't know the exact export formats of commercial solvers (PioSOLVER, GTO Wizard, etc.), so I designed a simple documented format (README) instead of guessing theirs. If you tell me which solver you use and share a sample export, a converter can be added.
+- The preflop Solver Import screen (older, from before this pack) has "CSV example" / "JSON example" buttons that fill in placeholder frequencies (e.g. A5s 50%). They're only format examples, but if you apply one, those spots get labelled "Solver data". Should I remove the buttons or make them un-importable like the postflop examples?
 
 ## Final report
 (written at the end)

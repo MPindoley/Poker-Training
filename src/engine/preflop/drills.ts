@@ -140,6 +140,8 @@ function flashQuestion(ctx: PreflopDrillContext, rng: Rng, difficulty: Difficult
     id,
     kind: 'preflop.flash',
     skill: `preflop.flash:${variant}`,
+    source: chart.sourceOf(spot.path),
+    confidence: preflopConfidence(strat),
     tags: [`preflop.seat:${seat}`, `preflop.group:${handGroup(label)}`],
     difficulty,
     prompt: `${situation} What's your play?`,
@@ -293,6 +295,8 @@ function defenseQuestion(ctx: PreflopDrillContext, rng: Rng, difficulty: Difficu
     id,
     kind: 'preflop.defense',
     skill: `preflop.defense:${variant}`,
+    source: chart.sourceOf(spot.path),
+    confidence: preflopConfidence(strat),
     tags: [`preflop.seat:BBvs${opener}`, `preflop.group:${handGroup(label)}`],
     difficulty,
     prompt: `${opener} opens to ${open}bb${opener === 'SB' ? '' : ', folds to you'}. You're in the big blind. Defend?`,
@@ -318,6 +322,10 @@ type HomeKind = 'vsLimpers' | 'vsLimpRaise' | 'squeeze' | 'vs4bet';
 
 const pickFrom = <T>(rng: Rng, items: readonly T[]): T => items[Math.floor(rng() * items.length)]!;
 const bbs = (x: number) => `${round(x)}bb`;
+
+/** Preflop: a hand the chart plays one way at least this often is "clear"; mixed hands are "close". */
+export const PREFLOP_CLEAR_FREQ = 0.75;
+const preflopConfidence = (strat: { freq: Partial<Record<string, number>>; main: string }) => ((strat.freq[strat.main] ?? 0) >= PREFLOP_CLEAR_FREQ ? 'clear' : 'close') as 'clear' | 'close';
 
 function homeSpotQuestion(ctx: PreflopDrillContext, rng: Rng, difficulty: Difficulty, variant: string, id: string, drillKind: string): Question {
   const { chart } = ctx;
@@ -404,6 +412,8 @@ function homeSpotQuestion(ctx: PreflopDrillContext, rng: Rng, difficulty: Diffic
     id,
     kind: drillKind,
     skill: `${drillKind}:${variant}`,
+    source: chart.sourceOf(spot.path),
+    confidence: preflopConfidence(strat),
     tags: [`preflop.seat:${seat}`, `preflop.group:${handGroup(label)}`],
     difficulty,
     prompt: `${situation} What's your play?`,
@@ -431,8 +441,10 @@ export function makePreflopDrills(ctx: PreflopDrillContext): DrillDef[] {
   const threeBet = chart.facing3betSeats().map((s) => `3bet:${s}`);
   const bbVs = chart.facingOpenPairs().filter((p) => p.seat === 'BB').map((p) => `vs:${p.opener}`);
   const mode: GameMode = chart.id.startsWith('home') ? 'home' : 'casino';
-  const wrap = (fn: typeof flashQuestion) => (rng: Rng, d: Difficulty, v: string, id: string) => fn(ctx, rng, d, v, id);
-  const home = (kind: string) => (rng: Rng, d: Difficulty, v: string, id: string) => homeSpotQuestion(ctx, rng, d, v, id, kind);
+  // Every preflop answer comes from a chart (or imported solver data, set per question).
+  const labelled = (q: Question): Question => ({ ...q, source: q.source ?? 'chart' });
+  const wrap = (fn: typeof flashQuestion) => (rng: Rng, d: Difficulty, v: string, id: string) => labelled(fn(ctx, rng, d, v, id));
+  const home = (kind: string) => (rng: Rng, d: Difficulty, v: string, id: string) => labelled(homeSpotQuestion(ctx, rng, d, v, id, kind));
   const limp = chart.limperSpots().map((s) => `lim:${s.seat}:${s.limpers}`);
   const limpEasy = limp.filter((v) => v.endsWith(':1'));
   const limpRaise = chart.limpRaiseSeats().map((s) => `lr:${s}`);

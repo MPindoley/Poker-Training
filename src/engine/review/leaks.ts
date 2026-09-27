@@ -2,6 +2,7 @@
  * LEAK FINDER — groups graded decisions (from logged hands and played hands) into known leak
  * patterns and ranks them by estimated cost. Each rule is a readable predicate over a decision.
  */
+import { MISTAKE_WEIGHT } from '../strategy/confidence';
 import type { DecisionReview } from '../game/coach';
 
 export interface LeakRule {
@@ -120,7 +121,16 @@ export interface Leak {
   cost: number;
   /** Leaks whose cost couldn't be computed for some hands. */
   uncosted: number;
+  /**
+   * Hits weighted by how sure each grade was: a mistake in a close or read-dependent spot counts
+   * MISTAKE_WEIGHT (half), a clear one counts fully. Leaks are ranked by weighted cost, then this.
+   */
+  severity: number;
+  /** Cost weighted the same way. */
+  weightedCost: number;
 }
+
+const hitWeight = (d: DecisionReview) => (d.grade === 'mistake' ? MISTAKE_WEIGHT[d.confidence ?? 'clear'] : 1);
 
 export function findLeaks(decisions: DecisionReview[]): Leak[] {
   return LEAK_RULES.map((rule) => {
@@ -134,8 +144,10 @@ export function findLeaks(decisions: DecisionReview[]): Leak[] {
       rate: opps.length ? hits.length / opps.length : 0,
       cost: Math.round(cost * 100) / 100,
       uncosted: hits.filter((d) => d.evLost === null).length,
+      severity: Math.round(hits.reduce((a, d) => a + hitWeight(d), 0) * 100) / 100,
+      weightedCost: Math.round(hits.reduce((a, d) => a + (d.evLost ?? 0) * hitWeight(d), 0) * 100) / 100,
     };
   })
     .filter((l) => l.count > 0)
-    .sort((a, b) => b.cost - a.cost || b.count - a.count);
+    .sort((a, b) => b.weightedCost - a.weightedCost || b.severity - a.severity || b.count - a.count);
 }
