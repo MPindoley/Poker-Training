@@ -7,7 +7,7 @@ import { indexToString } from '../cards';
 import type { Chart } from '../preflop/charts';
 import { COMBOS, parseRange, type Range } from '../range';
 import type { Rng } from '../rng';
-import { HERO_LINE_MODEL, type VillainModel } from '../strategy/villainModel';
+import { HERO_LINE_MODEL, forStreet, type VillainModel } from '../strategy/villainModel';
 import type { Bucket } from './buckets';
 import { bettingRange, checkingRange, classifyRange, continuingRange, type Street } from './narrow';
 
@@ -214,12 +214,12 @@ export function generateSpot(rng: Rng, opts: SpotOptions): Spot {
       const checkThrough = rng() < (theme === 'value' ? 0.35 : 0.25);
       const all = [hero, ...villains];
       if (checkThrough) {
-        for (const p of all) p.range = checkingRange(classifyRange(p.range, b), betFrac, p === hero ? HERO_LINE_MODEL : opts.model, s);
+        for (const p of all) p.range = checkingRange(classifyRange(p.range, b), betFrac, p === hero ? HERO_LINE_MODEL : forStreet(opts.model, s), s);
         history.push({ street: s, text: `${cardText(b.slice(s === 'flop' ? 0 : 3))} — checks through.` });
       } else {
         const bet = Math.min(stack, Math.round(pot * betFrac * 2) / 2);
         for (const p of all) {
-          const model = p === hero ? HERO_LINE_MODEL : opts.model;
+          const model = p === hero ? HERO_LINE_MODEL : forStreet(opts.model, s);
           const combos = classifyRange(p.range, b);
           p.range = p.seat === bettor.seat ? bettingRange(combos, betFrac, model, s) : continuingRange(combos, betFrac, model);
         }
@@ -244,11 +244,11 @@ export function generateSpot(rng: Rng, opts: SpotOptions): Spot {
       const frac = Math.round((lo + rng() * (hi - lo)) * 100) / 100;
       facingBet = Math.min(stack, Math.max(1, Math.round(pot * frac * 2) / 2));
       const v = villains[0]!;
-      v.range = bettingRange(classifyRange(v.range, board), facingBet / pot, opts.model, street);
+      v.range = bettingRange(classifyRange(v.range, board), facingBet / pot, forStreet(opts.model, street), street);
       rangeTrail.push({ label: `Bets ${Math.round((facingBet / pot) * 100)}% pot`, range: v.range });
     } else if (heroIP) {
       checkedTo = true;
-      for (const v of villains) v.range = checkingRange(classifyRange(v.range, board), 0.5, opts.model, street);
+      for (const v of villains) v.range = checkingRange(classifyRange(v.range, board), 0.5, forStreet(opts.model, street), street);
       rangeTrail.push({ label: 'Checks', range: villains[0]!.range });
     }
 

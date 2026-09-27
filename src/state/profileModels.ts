@@ -1,6 +1,12 @@
-import { REGULAR_MODEL, type VillainModel } from '../engine';
+import { useMemo } from 'react';
+import { ARCHETYPES, REGULAR_MODEL, archetypeModel, profileModel, type ArchetypeId, type VillainModel } from '../engine';
+import { useProfiles } from './profilesStore';
 
-/** Villain models available for analysis. The Exploit Lab adds archetypes and custom profiles here. */
+/** Every villain model available for analysis: the default, the archetypes and your custom profiles. */
 export function useProfileModels(): VillainModel[] {
-  return [REGULAR_MODEL];
+  const profiles = useProfiles((s) => s.profiles);
+  return useMemo(
+    () => [REGULAR_MODEL, ...(Object.keys(ARCHETYPES) as ArchetypeId[]).map(archetypeModel), ...profiles.map(profileModel)],
+    [profiles],
+  );
 }

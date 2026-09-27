@@ -5,7 +5,7 @@
 import { parseCardIndices } from '../cards';
 import type { Chart } from '../preflop/charts';
 import { parseRange, type Range } from '../range';
-import { HERO_LINE_MODEL, type VillainModel } from '../strategy/villainModel';
+import { HERO_LINE_MODEL, forStreet, type VillainModel } from '../strategy/villainModel';
 import { bettingRange, checkingRange, classifyRange, continuingRange, streetOf, type Street } from './narrow';
 import { BB_CHECK_RANGE, LIMP_RANGE, actsAfter, cardText, type HistoryLine, type Spot, type Theme } from './scenario';
 
@@ -68,12 +68,12 @@ export function buildReplaySpot(chart: Chart, input: ReplayInput, theme?: Theme)
     const vc = classifyRange(villainRange, b);
     if (line === 'check-check') {
       heroRange = checkingRange(hc, 0.5, HERO_LINE_MODEL, s);
-      villainRange = checkingRange(vc, 0.5, input.model, s);
+      villainRange = checkingRange(vc, 0.5, forStreet(input.model, s), s);
     } else if (line === 'hero-bet-call') {
       heroRange = bettingRange(hc, 0.5, HERO_LINE_MODEL, s);
-      villainRange = continuingRange(vc, 0.5, input.model);
+      villainRange = continuingRange(vc, 0.5, forStreet(input.model, s));
     } else {
-      villainRange = bettingRange(vc, 0.5, input.model, s);
+      villainRange = bettingRange(vc, 0.5, forStreet(input.model, s), s);
       heroRange = continuingRange(hc, 0.5, HERO_LINE_MODEL);
     }
     history.push({ street: s, text: `${cardText(b.slice(k === 0 ? 0 : 2 + k))} — ${line.replace(/-/g, ' ')}` });
@@ -81,10 +81,10 @@ export function buildReplaySpot(chart: Chart, input: ReplayInput, theme?: Theme)
   });
   const heroIP = actsAfter(input.heroSeat, input.villainSeat);
   if (input.facingBet !== null) {
-    villainRange = bettingRange(classifyRange(villainRange, board), input.facingBet / input.pot, input.model, street);
+    villainRange = bettingRange(classifyRange(villainRange, board), input.facingBet / input.pot, forStreet(input.model, street), street);
     trail.push({ label: 'Bets now', range: villainRange });
   } else if (heroIP) {
-    villainRange = checkingRange(classifyRange(villainRange, board), 0.5, input.model, street);
+    villainRange = checkingRange(classifyRange(villainRange, board), 0.5, forStreet(input.model, street), street);
     trail.push({ label: 'Checks', range: villainRange });
   }
   return {

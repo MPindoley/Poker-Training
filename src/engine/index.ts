@@ -16,3 +16,4 @@ export * from './cheatsheet';
 export * from './preflop';
 export * from './postflop';
 export * from './strategy';
+export * from './exploit';

@@ -8,7 +8,7 @@ const MODULES = [
   { name: 'Math', blurb: 'Pot odds, outs, equity, EV', color: 'from-[#ff7a6e] to-ruby-dark', glyph: '%', to: '/train/math' },
   { name: 'Preflop', blurb: 'Opening ranges at 40bb & 100bb', color: 'from-gold-300 to-gold-700', glyph: 'AK', to: '/train/preflop' },
   { name: 'Postflop', blurb: 'Bet sizing, value, bluffs', color: 'from-[#6fb2ff] to-sapphire-dark', glyph: <SuitIcon suit="d" className="h-8 w-8" />, to: '/train/postflop' },
-  { name: 'Exploit Lab', blurb: 'Adjust to home-game regulars', color: 'from-[#b88bff] to-grape-dark', glyph: '?!' },
+  { name: 'Exploit Lab', blurb: 'Adjust to home-game regulars', color: 'from-[#b88bff] to-grape-dark', glyph: '?!', to: '/train/exploit' },
 ];
 
 export function TrainScreen() {

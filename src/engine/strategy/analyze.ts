@@ -14,6 +14,7 @@ import type { Spot } from '../postflop/scenario';
 import type { Range } from '../range';
 import { classifyBoard, type BoardTexture } from '../texture';
 import { CBET_PLAN_TEXT, RULES, cbetHandRule, cbetPlan, sizeClass, type CbetPlan } from './rules';
+import { forStreet } from './villainModel';
 
 export interface OptionEval {
   id: string;
@@ -108,7 +109,7 @@ export function analyzeSpot(spot: Spot, opts: AnalyzeOptions = {}): SpotAnalysis
     let expectedCallers = 0;
     const cont: Range[] = [];
     for (const { combos } of sourceRanges) {
-      const c = continuingRange(combos, fraction, spot.model);
+      const c = continuingRange(combos, fraction, forStreet(spot.model, street));
       const kept = combos.reduce((s, x) => s + x.weight, 0);
       const p = kept > 0 ? totalOf(c) / kept : 0;
       fold *= 1 - p;

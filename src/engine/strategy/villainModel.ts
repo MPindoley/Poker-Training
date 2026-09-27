@@ -11,6 +11,8 @@
  */
 import type { Bucket } from '../postflop/buckets';
 
+export type ModelStreet = 'flop' | 'turn' | 'river';
+
 export interface VillainModel {
   id: string;
   name: string;
@@ -18,6 +20,13 @@ export interface VillainModel {
   sizeElasticity: number;
   betFreq: Record<Bucket, number>;
   bluffFactor: number;
+  /** Optional per-street versions (e.g. folds a lot on the flop, never on the river). */
+  byStreet?: Partial<Record<ModelStreet, VillainModel>>;
+}
+
+/** The model to use on a given street. */
+export function forStreet(model: VillainModel, street: ModelStreet): VillainModel {
+  return model.byStreet?.[street] ?? model;
 }
 
 export const REGULAR_MODEL: VillainModel = {
