@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { findLeaks, formatPercent, sessionProfit, sessionStats, type DecisionReview, heroOf, migrateLoggedHand, opponentsOf } from '../engine';
 import { useHandLog } from '../state/handLogStore';
+import { useLive } from '../state/liveStore';
 import { usePlayLog } from '../state/playLogStore';
 import { toast } from '../state/toastStore';
 import { downloadJson, exportAll, importAll, validateBackup } from '../storage/backup';
@@ -58,9 +59,13 @@ export function ReviewScreen() {
     }
   };
 
+  const liveActive = useLive((st) => !!st.active);
   return (
     <div className="space-y-4">
       <ScreenHeader title="Review" subtitle="Log real hands, find your leaks" />
+      <GameButton color="green" size="lg" fullWidth onClick={() => navigate('/review/live')}>
+        {liveActive ? 'Back to live session' : 'Start Live Session'}
+      </GameButton>
       <div className="grid grid-cols-2 gap-3">
         <GameButton color="gold" onClick={() => navigate('/review/log')}>
           Log a hand

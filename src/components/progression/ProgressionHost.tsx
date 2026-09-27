@@ -15,7 +15,7 @@ import { Celebration, GameButton } from '../ui';
 import { ChestSheet } from './ChestSheet';
 
 /** Drills and the table: celebrations wait until the player leaves them. */
-const IMMERSIVE = [/^\/train\/[^/]+\/play/, /^\/train\/session/, /^\/play\/table/];
+const IMMERSIVE = [/^\/train\/[^/]+\/play/, /^\/train\/session/, /^\/play\/table/, /^\/review\/live/];
 
 /**
  * Watches saved progress and turns milestones into rewards: level-ups, achievements and daily-task
@@ -80,8 +80,10 @@ export function ProgressionHost() {
 
   // Small notices show immediately; the level-up modal waits for a calm screen.
   const head = queue[0];
+  // The live tracker is discreet: celebrations wait until you leave it.
+  const discreet = /^\/review\/live/.test(location.pathname);
   useEffect(() => {
-    if (!head) return;
+    if (!head || discreet) return;
     if (head.type === 'achievement') {
       const a = ACHIEVEMENTS.find((x) => x.id === head.id)!;
       toast({ tone: 'best', title: `Achievement: ${a.name}`, message: a.chest ? `${a.description} · +1 chest` : a.description });
@@ -100,7 +102,7 @@ export function ProgressionHost() {
         sfx('levelUp');
       }
     }
-  }, [head, immersive, shift]);
+  }, [head, immersive, shift, discreet]);
 
   const levelUp = head?.type === 'levelUp' && !immersive ? head : null;
   const arenas = levelUp ? arenasUnlocked(levelUp.from, levelUp.to) : [];

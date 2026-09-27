@@ -31,11 +31,11 @@ Baseline (before starting): 462 tests pass, typecheck clean, build OK.
 - [x] App: seat-picker table, profile quick-assign, legal next-actor entry, shown cards, street timeline
 
 ## Phase 3: Live table tracker
-- [ ] Engine src/engine/live: LiveSession, events with undo, computeObservedStats, applySession + tests
-- [ ] /review/live screen; Start Live Session on Home and Review
-- [ ] Setup, tracking view (discreet, wake lock, offline), bookmark hand → logger prefill
-- [ ] End session: cash-out/rebuys → session record; review with before/after profiles and reads; confirm
-- [ ] Exploit Lab "Player cards"
+- [x] Engine src/engine/live: LiveSession, events with undo, computeObservedStats, applySession + tests
+- [x] /review/live screen; Start Live Session on Home and Review
+- [x] Setup, tracking view (discreet, wake lock, offline), bookmark hand → logger prefill
+- [x] End session: cash-out/rebuys → session record; review with before/after profiles and reads; confirm
+- [x] Exploit Lab "Player cards"
 
 ## Phase 4: Bots that react to table image
 - [ ] Engine src/engine/image: ImageState, decay, labels, reactivity, modifiers + tests
@@ -84,6 +84,9 @@ Baseline (before starting): 462 tests pass, typecheck clean, build OK.
 - Logged hands v2: `players[]` (hero flagged, optional profile, name, own stack, shown cards) and `actor` = player id. v1 hands migrate with ids 'hero' / 'villain' (store `version: 2` + `migrate`, and backup import runs the same migration via `storage/migrations.ts`).
 - Multi-way hand analysis: each opponent's preflop range comes from their own actions (charts, or VPIP/PFR ranges for tagged profiles), narrowed postflop with their own model; hero is graded against everyone still in (the analyser takes a model per villain). Side pots only show once someone is all-in.
 - The logger only needs the players who were involved; players who folded without investing can be skipped. "Other limpers" adds unlogged limpers to the preflop context.
+
+- Live tracker: VPIP/PFR use hands dealt while seated as the denominator; fold-to stats use folds ÷ (folds + calls [+ raises]); WTSD uses hands played (we don't track who saw the flop) and aggression uses (raises + 3-bets + c-bet raises) ÷ (limps + calls). Both are labelled approximations in code. A player with no taps is treated as untracked (no observations). Stats move by their own sample size (n / (n + 20)); under 10 samples are marked low-confidence. Profiles now store per-stat sample counts (optional field, no migration needed).
+- The live screen is discreet: dark low-glare surfaces, button sounds off, and level-up/achievement celebrations are held until you leave it. A new `live` store is included in backups.
 
 ## Open questions for Matt
 - Home-game limper / squeeze / 4-bet ranges (src/data/ranges/home-40bb.json) are my best judgment for a loose-passive 40bb game. Please sanity-check especially: iso ranges vs 1 limper from the button (44+, A7s+, …) and the value-only squeeze ranges.
