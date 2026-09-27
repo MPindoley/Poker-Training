@@ -71,13 +71,32 @@ export function PlayScreen() {
               { value: 'badges', label: 'Show player types' },
               { value: 'home', label: `Home Game preset (${profiles.length} players)` },
               { value: 'straddle', label: 'UTG straddle (2bb)' },
+              { value: 'meter', label: 'Table image meter' },
+              { value: 'hard', label: 'Hard mode' },
             ]}
-            value={[...(cfg.coach ? ['coach'] : []), ...(cfg.showBadges ? ['badges'] : []), ...(cfg.homeGame ? ['home'] : []), ...(cfg.straddle ? ['straddle'] : [])]}
-            onChange={(v) => set({ coach: v.includes('coach'), showBadges: v.includes('badges'), homeGame: v.includes('home'), straddle: v.includes('straddle') })}
+            value={[
+              ...(cfg.coach ? ['coach'] : []),
+              ...(cfg.showBadges ? ['badges'] : []),
+              ...(cfg.homeGame ? ['home'] : []),
+              ...(cfg.straddle ? ['straddle'] : []),
+              ...(cfg.imageMeter !== false ? ['meter'] : []),
+              ...(cfg.hardMode ? ['hard'] : []),
+            ]}
+            onChange={(v) =>
+              set({
+                coach: v.includes('coach'),
+                showBadges: v.includes('badges'),
+                homeGame: v.includes('home'),
+                straddle: v.includes('straddle'),
+                imageMeter: v.includes('meter'),
+                hardMode: v.includes('hard'),
+              })
+            }
           />
           <p className="text-xs font-semibold text-cream/70">
             Coach off: no hints while you play, graded afterwards only. Player types hidden: figure them out yourself. Home Game fills the table with your
-            profiles from the Exploit Lab. Straddle: UTG posts 2bb and acts last preflop; the coach reads every seat one position tighter.
+            profiles from the Exploit Lab. Straddle: UTG posts 2bb and acts last preflop; the coach reads every seat one position tighter. Table image: bots remember what you show them and adjust; the meter shows how
+            they see you (Home Game starts you as Tight and Feared). Hard mode: no coach and no meter.
           </p>
         </div>
       </Panel>

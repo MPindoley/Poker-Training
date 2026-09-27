@@ -10,6 +10,7 @@ import { STREET_BLUFF_FACTOR } from '../strategy/villainModel';
 import { statsToModel, type ArchetypeId, type PlayerStats } from '../exploit/profiles';
 import type { Rng } from '../rng';
 import { legalActions, potSize, type HandState, type PlayerAction } from './holdem';
+import { applyImage, ARCHETYPE_REACTIVITY, preflopImageFactor, type ImageLabel } from '../image/image';
 
 export interface BotProfile {
   name: string;
@@ -17,6 +18,19 @@ export interface BotProfile {
   profileId?: string;
   stats: PlayerStats;
   model: VillainModel;
+  /** How much this bot reacts to hero's table image: 0 = ignores it, 1 = normal, 2 = very reactive. */
+  imageReactivity?: number;
+}
+
+/** Reactivity used for a bot: its own value, else its archetype's default, else 1. */
+export function reactivityOf(bot: BotProfile): number {
+  return bot.imageReactivity ?? ARCHETYPE_REACTIVITY[bot.archetype ?? ''] ?? 1;
+}
+
+/** Hero's image as the bots see it this hand (omit = image ignored). */
+export interface HeroImageContext {
+  seat: number;
+  label: ImageLabel;
 }
 
 export function makeBot(name: string, stats: PlayerStats, archetype?: ArchetypeId, profileId?: string): BotProfile {
@@ -69,12 +83,17 @@ function raiseTo(_s: HandState, to: number): PlayerAction {
   return { type: 'raise', to };
 }
 
-export function botDecision(s: HandState, bot: BotProfile, rng: Rng): PlayerAction {
+export function botDecision(s: HandState, bot: BotProfile, rng: Rng, image?: HeroImageContext): PlayerAction {
   const la = legalActions(s)!;
   const me = s.seats[la.seat]!;
   const st = bot.stats;
   const aggr = st.aggression;
   const pot = potSize(s);
+  const reactivity = image ? reactivityOf(bot) : 0;
+  // Is the bet this bot faces hero's? (image only changes how they respond to YOU)
+  const lastAggr = [...s.log].reverse().find((e) => e.type === 'bet' || e.type === 'raise');
+  const facingHero = !!image && lastAggr?.seat === image.seat && la.toCall > 0;
+  const heroIn = !!image && !s.seats[image.seat]?.folded;
 
   if (s.street === 'preflop') {
     const p = handPercentile(holeLabel(me.hole));
@@ -97,7 +116,8 @@ export function botDecision(s: HandState, bot: BotProfile, rng: Rng): PlayerActi
       const valueThree = st.pfr * 0.3;
       const bluffThree = aggr > 2.5 && rng() < (aggr - 2.5) / 8 && p < 0.55;
       if (p < valueThree || bluffThree) return raiseTo(s, s.currentBet * 3.2);
-      const callWith = st.vpip * (st.pfr / st.vpip < 0.4 ? 0.75 : 0.55) + (isBB ? 0.1 : 0);
+      const imageMul = facingHero ? preflopImageFactor(image!.label, reactivity) : 1;
+      const callWith = (st.vpip * (st.pfr / st.vpip < 0.4 ? 0.75 : 0.55) + (isBB ? 0.1 : 0)) * imageMul;
       return p < callWith ? { type: 'call' } : { type: 'fold' };
     }
     const fourBet = bot.archetype === 'maniac' || bot.archetype === 'gambler' ? 0.06 : 0.025;
@@ -106,7 +126,8 @@ export function botDecision(s: HandState, bot: BotProfile, rng: Rng): PlayerActi
   }
 
   const street = s.street;
-  const model = forStreet(bot.model, street);
+  const imaged = image && reactivity > 0 && (facingHero || (la.toCall === 0 && heroIn)) ? applyImage(bot.model, image.label, reactivity) : bot.model;
+  const model = forStreet(imaged, street);
   const info = classifyHand(me.hole[0]!, me.hole[1]!, s.board);
   const r = rng();
   if (la.toCall > 0) {

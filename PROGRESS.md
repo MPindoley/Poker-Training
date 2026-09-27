@@ -38,11 +38,11 @@ Baseline (before starting): 462 tests pass, typecheck clean, build OK.
 - [x] Exploit Lab "Player cards"
 
 ## Phase 4: Bots that react to table image
-- [ ] Engine src/engine/image: ImageState, decay, labels, reactivity, modifiers + tests
-- [ ] botDecision applies image; Home Game preset (Tight and Feared start)
-- [ ] Image meter (setting), coach mentions image, hand review / session summary notes
-- [ ] Exploit Lab "Image Shifts" drill pack
-- [ ] Learn: Table image lesson interactive example
+- [x] Engine src/engine/image: ImageState, decay, labels, reactivity, modifiers + tests
+- [x] botDecision applies image; Home Game preset (Tight and Feared start)
+- [x] Image meter (setting), coach mentions image, hand review / session summary notes
+- [x] Exploit Lab "Image Shifts" drill pack
+- [x] Learn: Table image lesson interactive example
 
 ## Phase 5: Range Lab
 - [ ] /train/lab screen + Train card (keep /debug/equity)
@@ -88,8 +88,14 @@ Baseline (before starting): 462 tests pass, typecheck clean, build OK.
 - Live tracker: VPIP/PFR use hands dealt while seated as the denominator; fold-to stats use folds ÷ (folds + calls [+ raises]); WTSD uses hands played (we don't track who saw the flop) and aggression uses (raises + 3-bets + c-bet raises) ÷ (limps + calls). Both are labelled approximations in code. A player with no taps is treated as untracked (no observations). Stats move by their own sample size (n / (n + 20)); under 10 samples are marked low-confidence. Profiles now store per-stat sample counts (optional field, no migration needed).
 - The live screen is discreet: dark low-glare surfaces, button sounds off, and level-up/achievement celebrations are held until you leave it. A new `live` store is included in backups.
 
+- Table image (src/engine/image): moving averages over ~30 hands (VPIP, aggression, pots won) plus decaying counts of big hands and weak winners shown; a shown bluff makes you Wild for 12 hands; 12 folds in a row reads Card Dead. Only what the table can see counts (bluffs that win without showdown are invisible).
+- Image changes opponents through a per-street "stickiness" s: continue chance p → p^(1/s) (stays in 0..1, a monster never folds). Tight and Feared = fold more preflop/flop, stickier turn/river. Reactivity scales the shift (0 = none); archetype defaults: station 0.3, maniac 0.5, gambler 0.6, TAG 1, EFLS 1.2, nit 1.5. All in `IMAGE_STICKINESS` / `ARCHETYPE_REACTIVITY` — assumptions, not solver data.
+- Bots apply image only when responding to hero's bet (or betting into hero); the coach and range narrowing use the same imaged models so advice matches what the bots do.
+- Play setup gains "Table image meter" (on by default) and "Hard mode" (no coach, no meter). Table config isn't persisted, so no migration. `HandReview.imageShift` is a new optional field in saved Play sessions (older records simply lack it).
+
 ## Open questions for Matt
 - Home-game limper / squeeze / 4-bet ranges (src/data/ranges/home-40bb.json) are my best judgment for a loose-passive 40bb game. Please sanity-check especially: iso ranges vs 1 limper from the button (44+, A7s+, …) and the value-only squeeze ranges.
+- Table image sizes (how much tighter/looser people get and how long a shown bluff is remembered) are my guesses about live home games. Tune `IMAGE_STICKINESS`, `BLUFF_MEMORY_HANDS` and `ARCHETYPE_REACTIVITY` in src/engine/image/image.ts if they feel off at your table.
 
 ## Final report
 (written at the end)

@@ -1,7 +1,22 @@
 import { ACTION_NAMES, formatPercent, legalActions, potSize, type HandState, type PreflopAction, type PreflopAdvice, type SpotAnalysis } from '../../engine';
 import { RichText } from '../ui';
 
-export function CoachPanel({ hand, analysis, preflop, loading, error }: { hand: HandState; analysis: SpotAnalysis | null; preflop: PreflopAdvice | null; loading: boolean; error: string | null }) {
+export function CoachPanel({
+  hand,
+  analysis,
+  preflop,
+  loading,
+  error,
+  imageTip,
+}: {
+  hand: HandState;
+  analysis: SpotAnalysis | null;
+  preflop: PreflopAdvice | null;
+  loading: boolean;
+  error: string | null;
+  /** How your table image changes this spot (null = nothing to add). */
+  imageTip?: string | null;
+}) {
   const la = legalActions(hand);
   const pot = potSize(hand);
   const priceLine = la && la.toCall > 0 ? `Pot odds: call ${la.call} to win ${Math.round(pot * 10) / 10} → need ${formatPercent(la.call / (pot + la.call))}` : null;
@@ -47,6 +62,7 @@ export function CoachPanel({ hand, analysis, preflop, loading, error }: { hand: 
       ) : (
         <div className="text-sm font-semibold text-cream/70">Waiting…</div>
       )}
+      {imageTip && <div className="mt-1 rounded-lg bg-ink/40 px-1.5 py-1 text-xs font-bold text-[#b9d7ff]">{imageTip}</div>}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { GRADE_LABEL } from '../../engine';
+import { GRADE_LABEL, imageLabel, imageSessionNotes } from '../../engine';
 import { useTable } from '../../state/tableStore';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { GameButton, Panel } from '../../components/ui';
@@ -65,6 +65,15 @@ export function SessionSummaryScreen() {
           </div>
         )}
       </Panel>
+      {(t.active || t.imageShifts.length > 0) && (
+        <Panel tone="night" title="Your table image">
+          <ul className="space-y-1 text-sm font-semibold">
+            {imageSessionNotes(t.imageShifts, imageLabel(t.image)).map((n, i) => (
+              <li key={i}>{n}</li>
+            ))}
+          </ul>
+        </Panel>
+      )}
       {t.active && (
         <GameButton
           color="red"

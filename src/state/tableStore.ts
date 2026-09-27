@@ -5,6 +5,16 @@
 import { create } from 'zustand';
 import {
   ARCHETYPES,
+  NEUTRAL_IMAGE,
+  TIGHT_FEARED_START,
+  applyImage,
+  imageEventsFromHand,
+  imageLabel,
+  reactivityOf,
+  updateImage,
+  type ImageLabel,
+  type ImageShift,
+  type ImageState,
   allInAdjusted,
   applyAction,
   botDecision,
@@ -56,7 +66,14 @@ export interface TableConfig {
   homeGame: boolean;
   /** UTG posts a 2bb straddle every hand (optional: older saved tables have no value = off). */
   straddle?: boolean;
+  /** Show the table-image meter (optional: missing = on). */
+  imageMeter?: boolean;
+  /** Hard mode: no coach and no image meter (optional: missing = off). */
+  hardMode?: boolean;
 }
+
+/** Whether the meter is visible for this config. */
+export const showImageMeter = (c: TableConfig) => !c.hardMode && c.imageMeter !== false;
 
 export const DEFAULT_CONFIG: TableConfig = { players: 6, stackBb: 40, bigBlindDollars: 0.5, speed: 'normal', coach: true, showBadges: true, homeGame: false };
 
@@ -87,6 +104,9 @@ interface TableState {
   lastReview: HandReview | null;
   reviewing: boolean;
   chart: Chart | null;
+  /** How the table sees you (bots react to it). */
+  image: ImageState;
+  imageShifts: ImageShift[];
 
   startSession: (config: TableConfig, profiles: Profile[], chart: Chart) => void;
   endSession: () => void;
@@ -120,6 +140,8 @@ export const useTable = create<TableState>()((set, get) => ({
   lastReview: null,
   reviewing: false,
   chart: null,
+  image: NEUTRAL_IMAGE,
+  imageShifts: [],
 
   startSession: (config, profiles, chart) => {
     const n = config.players;
@@ -154,6 +176,9 @@ export const useTable = create<TableState>()((set, get) => ({
       lastReview: null,
       reviewing: false,
       chart,
+      // Home Game preset: the regulars already know you as the tight, strong player.
+      image: config.homeGame ? TIGHT_FEARED_START : NEUTRAL_IMAGE,
+      imageShifts: [],
     });
     get().nextHand();
   },
@@ -209,8 +234,8 @@ export const useTable = create<TableState>()((set, get) => ({
       set({ coach: { loading: false, analysis: null, preflop: preflopAdvice(hand, HERO, s.chart, s.positions), error: null } });
       return;
     }
-    const spot = spotFromGame(hand, HERO, s.ranges, s.bots, s.positions);
-    if (!s.config.coach) {
+    const spot = spotFromGame(hand, HERO, s.ranges, imagedBots(), s.positions);
+    if (!s.config.coach || s.config.hardMode) {
       set({ coach: { loading: false, analysis: null, preflop: null, error: null } });
       return;
     }
@@ -233,12 +258,12 @@ export const useTable = create<TableState>()((set, get) => ({
       eventIndex: hand.log.length,
       street: hand.street,
       preflop: hand.street === 'preflop' ? preflopAdvice(hand, HERO, s.chart, s.positions) : null,
-      spot: hand.street === 'preflop' ? null : spotFromGame(hand, HERO, s.ranges, s.bots, s.positions),
+      spot: hand.street === 'preflop' ? null : spotFromGame(hand, HERO, s.ranges, imagedBots(), s.positions),
       analysis: s.coach.analysis,
     };
     const next = applyAction(hand, a);
     const ev = next.log[next.log.length - 1]!;
-    set({ hand: next, ranges: updateRanges(s.ranges, hand, ev, s.bots), decisions: [...s.decisions, decision], coach: { loading: false, analysis: null, preflop: null, error: null } });
+    set({ hand: next, ranges: updateRanges(s.ranges, hand, ev, imagedBots()), decisions: [...s.decisions, decision], coach: { loading: false, analysis: null, preflop: null, error: null } });
     afterAction();
   },
 
@@ -247,20 +272,39 @@ export const useTable = create<TableState>()((set, get) => ({
     const hand = s.hand;
     if (!hand || hand.finished || hand.toAct === null || hand.toAct === HERO) return;
     const bot = s.bots[hand.toAct]!;
-    const next = applyAction(hand, botDecision(hand, bot, createRng(Date.now() + hand.log.length)));
+    const next = applyAction(hand, botDecision(hand, bot, createRng(Date.now() + hand.log.length), { seat: HERO, label: imageLabel(s.image) }));
     const ev = next.log[next.log.length - 1]!;
-    set({ hand: next, ranges: updateRanges(s.ranges, hand, ev, s.bots) });
+    set({ hand: next, ranges: updateRanges(s.ranges, hand, ev, imagedBots()) });
     afterAction();
   },
 
   summary: () => summarizeSession(get().reviews),
 }));
 
+/** Hero's current image label. */
+export const heroImageLabel = (): ImageLabel => imageLabel(useTable.getState().image);
+
+/**
+ * Bots with hero's image applied to their models, so the coach and range narrowing read the same
+ * opponents the bots actually are (botDecision applies it itself from the raw model).
+ */
+function imagedBots(): Record<number, BotProfile | undefined> {
+  const s = useTable.getState();
+  const label = imageLabel(s.image);
+  const out: Record<number, BotProfile | undefined> = {};
+  for (const [k, b] of Object.entries(s.bots)) out[Number(k)] = b && { ...b, model: applyImage(b.model, label, reactivityOf(b)) };
+  return out;
+}
+
 function afterAction() {
   const s = useTable.getState();
   const hand = s.hand!;
   if (hand.finished) {
-    useTable.setState({ stacks: hand.seats.map((x) => x.stack), reviewing: true });
+    const before = imageLabel(s.image);
+    const image = updateImage(s.image, imageEventsFromHand(hand, HERO));
+    const after = imageLabel(image);
+    const imageShifts = after !== before ? [...s.imageShifts, { handNo: hand.handNo, from: before, to: after }] : s.imageShifts;
+    useTable.setState({ stacks: hand.seats.map((x) => x.stack), reviewing: true, image, imageShifts });
     void reviewHand();
   } else if (hand.toAct === HERO) {
     s.requestCoach();
@@ -325,8 +369,10 @@ async function reviewHand() {
     }
   }
   const hero = hand.seats[HERO]!;
+  const shift = useTable.getState().imageShifts.find((x) => x.handNo === hand.handNo);
   const review: HandReview = {
     handNo: hand.handNo,
+    imageShift: shift ? { from: shift.from, to: shift.to } : undefined,
     heroCards: hero.hole.map(indexToString),
     board: hand.board.map(indexToString),
     net: hand.result?.net[HERO] ?? 0,

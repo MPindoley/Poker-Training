@@ -47,7 +47,7 @@ import {
   type StrategyVisual,
 } from '../../engine';
 import { useCharts } from '../../state/chartStore';
-import { isoSize, squeezeSize, straddleView, type ActionRanges } from '../../engine';
+import { IMAGE_BLURBS, IMAGE_LABELS, IMAGE_NAMES, applyImage, isoSize, preflopImageFactor, squeezeSize, straddleView, type ActionRanges, type ImageLabel } from '../../engine';
 import { runEquity } from '../../workers/equityClient';
 import { pushChartInWorker } from '../../workers/engineClient';
 import { CardPicker, CardView, ChipGroup, GameButton, StrategyGrid } from '../ui';
@@ -586,7 +586,28 @@ function Straddle() {
   );
 }
 
+/** Pick an image and a reactivity: a solid regular's fold chances vs a half-pot bet, street by street. */
+function Image() {
+  const [label, setLabel] = useState<ImageLabel>('tight-feared');
+  const [react, setReact] = useState(1);
+  const base = archetypeModel('tag');
+  const m = applyImage(base, label, react);
+  const row = (st: 'flop' | 'turn' | 'river'): [string, string] => [
+    `Folds to ${st} bet`,
+    `${pct(referenceFold(forStreet(base, st)), 0)} → ${pct(referenceFold(forStreet(m, st)), 0)}`,
+  ];
+  return (
+    <div className="space-y-2">
+      <ChipGroup options={IMAGE_LABELS.map((l) => ({ value: l, label: IMAGE_NAMES[l] }))} value={[label]} onChange={(v) => setLabel(v[0] as ImageLabel)} />
+      <Slider label="How much they notice" value={react} min={0} max={2} step={0.5} onChange={setReact} format={(x) => `${x}×`} />
+      <Readout items={[['Preflop calls', `${pct(preflopImageFactor(label, react), 0)} of normal`], row('flop'), row('turn'), row('river')]} />
+      <p className="text-sm font-bold">{IMAGE_BLURBS[label]}</p>
+    </div>
+  );
+}
+
 const EXAMPLES: Record<ExampleId, () => ReactElement> = {
+  image: Image,
   limpers: Limpers,
   squeeze: Squeeze,
   straddle: Straddle,

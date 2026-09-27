@@ -23,3 +23,4 @@ export * from './tournament';
 export * from './handCounts';
 export * from './meta';
 export * from './live';
+export * from './image';

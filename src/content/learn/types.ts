@@ -28,7 +28,8 @@ export type ExampleId =
   | 'variance'
   | 'limpers'
   | 'squeeze'
-  | 'straddle';
+  | 'straddle'
+  | 'image';
 
 export type Block =
   | { kind: 'p'; text: Dyn }

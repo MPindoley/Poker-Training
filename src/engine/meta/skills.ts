@@ -51,6 +51,7 @@ export const TRAINABLE_KINDS: readonly TrainableKind[] = [
   { kind: 'postflop.reading', title: THEME_NAMES.reading, area: 'reading' },
   { kind: 'exploit.efls', title: 'Early Folder, Late Sticker', area: 'exploits' },
   { kind: 'exploit.image', title: 'Your Table Image', area: 'exploits' },
+  { kind: 'exploit.imageShift', title: 'Image Shifts', area: 'exploits' },
 ];
 
 /** Area a drill kind counts toward (null for kinds outside the radar). */

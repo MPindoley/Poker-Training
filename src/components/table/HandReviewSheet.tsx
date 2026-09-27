@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { GRADE_LABEL, formatPercent, type HandReview, type HandState } from '../../engine';
+import { GRADE_LABEL, IMAGE_BLURBS, IMAGE_NAMES, formatPercent, type HandReview, type HandState } from '../../engine';
 import { GameButton, MiniCard } from '../ui';
 
 const GRADE_BG = { best: 'bg-felt-300 text-ink', acceptable: 'bg-[#6fb2ff] text-ink', mistake: 'bg-ruby text-white' } as const;
@@ -43,6 +43,11 @@ export function HandReviewSheet({ hand, review, onNext, onSummary }: { hand: Han
             <div className="rounded-xl border-2 border-ink bg-gold-300/60 p-2 text-xs font-bold">
               All-in with {formatPercent(review.allIn.equity)} equity: expected {signed(review.allIn.expected)}, actual {signed(review.allIn.actual)} —{' '}
               {review.allIn.actual >= review.allIn.expected ? 'you ran good' : 'bad luck, not bad play'}.
+            </div>
+          )}
+          {review.imageShift && (
+            <div className="rounded-xl border-2 border-ink bg-sapphire/25 p-2 text-xs font-bold">
+              The table saw this hand: you now look <b>{IMAGE_NAMES[review.imageShift.to]}</b> (was {IMAGE_NAMES[review.imageShift.from]}). {IMAGE_BLURBS[review.imageShift.to]}
             </div>
           )}
           <div className="flex items-center gap-1 text-xs font-bold text-ink/70">

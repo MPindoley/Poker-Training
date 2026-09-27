@@ -2,6 +2,7 @@
  * Coach and hand review for the Play tab: chart advice preflop, full spot analysis postflop,
  * grading of your actual actions, and all-in adjusted results (luck vs skill).
  */
+import type { ImageLabel } from '../image/image';
 import { calculateEquity } from '../equity';
 import type { Grade } from '../grading';
 import { formatPercent } from '../math';
@@ -250,6 +251,8 @@ export interface HandReview {
   net: number;
   allIn: AllInResult | null;
   decisions: DecisionReview[];
+  /** Hero's table image changed because of this hand (optional; older saved sessions lack it). */
+  imageShift?: { from: ImageLabel; to: ImageLabel };
 }
 
 export interface SessionSummary {
