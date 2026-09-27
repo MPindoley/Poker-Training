@@ -27,6 +27,8 @@ import { SessionSummaryScreen } from './screens/play/SessionSummaryScreen';
 import { HandLoggerScreen } from './screens/review/HandLoggerScreen';
 import { LoggedHandScreen } from './screens/review/LoggedHandScreen';
 import { SessionEditorScreen } from './screens/review/SessionEditorScreen';
+import { LessonScreen } from './screens/learn/LessonScreen';
+import { GlossaryScreen } from './screens/learn/GlossaryScreen';
 
 /** Full-screen routes (drills, the table) hide the tab bar so nothing covers the controls. */
 const IMMERSIVE = [/^\/train\/[^/]+\/play/, /^\/play\/table/];
@@ -73,6 +75,8 @@ export default function App() {
                 <Route path="/review/session/new" element={<SessionEditorScreen />} />
                 <Route path="/review/session/:id" element={<SessionEditorScreen />} />
                 <Route path="/learn" element={<LearnScreen />} />
+                <Route path="/learn/glossary" element={<GlossaryScreen />} />
+                <Route path="/learn/:id" element={<LessonScreen />} />
                 <Route path="/styleguide" element={<StyleguideScreen />} />
                 <Route path="/debug/equity" element={<DebugEquityScreen />} />
                 <Route path="*" element={<Navigate to="/" replace />} />

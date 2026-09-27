@@ -7,6 +7,8 @@ import {
   analyzeSpot,
   buildCharts,
   calculateEquity,
+  pushChart,
+  type ShoveResult,
   type AnalyzeOptions,
   type ChartJson,
   type ChartOverrides,
@@ -44,10 +46,17 @@ export interface LoggedJob {
   model: VillainModel;
 }
 
-export type EngineJob = EquityJob | AnalyzeJob | LoggedJob;
+export interface PushJob {
+  id: number;
+  kind: 'push';
+  stack: number;
+  callPercent: number;
+}
+
+export type EngineJob = EquityJob | AnalyzeJob | LoggedJob | PushJob;
 
 export type EquityReply = { id: number; ok: true; result: EquityResult } | { id: number; ok: false; error: string };
-export type EngineReply = { id: number; ok: true; result: EquityResult | SpotAnalysis | LoggedHandAnalysis } | { id: number; ok: false; error: string };
+export type EngineReply = { id: number; ok: true; result: EquityResult | SpotAnalysis | LoggedHandAnalysis | Record<string, ShoveResult> } | { id: number; ok: false; error: string };
 
 /** Pure handler, shared by the worker and by tests. */
 export function handleEquityJob(job: EquityJob): EquityReply {
@@ -59,6 +68,13 @@ export function handleEquityJob(job: EquityJob): EquityReply {
 }
 
 export function handleEngineJob(job: EngineJob): EngineReply {
+  if (job.kind === 'push') {
+    try {
+      return { id: job.id, ok: true, result: pushChart(job.stack, job.callPercent) };
+    } catch (e) {
+      return { id: job.id, ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
   if (job.kind === 'logged') {
     try {
       const chart = buildCharts(job.library, job.overrides)[job.chartId]!;

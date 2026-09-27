@@ -154,3 +154,8 @@ describe('exhaustive 5-card check', () => {
 it('parseCardIndices round-trips', () => {
   expect(parseCardIndices('2s Ac')).toEqual([0, 51]);
 });
+
+import { fiveCardCategoryCounts } from './handCounts';
+it('combinatorial category counts match the exhaustive enumeration', () => {
+  expect(Object.values(fiveCardCategoryCounts())).toEqual([1302540, 1098240, 123552, 54912, 10200, 5108, 3744, 624, 40]);
+});
