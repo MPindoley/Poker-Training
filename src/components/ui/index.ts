@@ -14,3 +14,4 @@ export * from './StrategyGrid';
 export * from './WeightGrid';
 export * from './CardPicker';
 export * from './Chips';
+export { Toggle } from './Toggle';

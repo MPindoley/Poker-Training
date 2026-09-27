@@ -1,19 +1,18 @@
 import { motion } from 'framer-motion';
-import { DEFAULT_DENOMS, breakdownChips } from '../../engine';
+import { DEFAULT_DENOMS, breakdownChips, type ChipsCosmetic } from '../../engine';
+import { useCosmetics } from '../../state/useCosmetics';
 
-const CHIP_COLORS: Record<number, { base: string; stripe: string }> = {
-  1: { base: '#f4f1ea', stripe: '#2f7fe8' },
-  5: { base: '#e5383b', stripe: '#fff6e0' },
-  25: { base: '#22b35e', stripe: '#fff6e0' },
-  100: { base: '#2a2440', stripe: '#f5b820' },
-  500: { base: '#8b4ae8', stripe: '#fff6e0' },
-  1000: { base: '#f5b820', stripe: '#6b3a1e' },
-};
-const FALLBACK = { base: '#2f7fe8', stripe: '#fff6e0' };
+/** Chip colours for a denomination: the set's colours go smallest to largest over DEFAULT_DENOMS. */
+export function chipColors(set: ChipsCosmetic, denom: number): { base: string; stripe: string } {
+  const ascending = [...DEFAULT_DENOMS].sort((a, b) => a - b);
+  const i = ascending.indexOf(denom as (typeof DEFAULT_DENOMS)[number]);
+  return set.colors[i >= 0 ? i : 0]!;
+}
+
 const MAX_PER_COLUMN = 8;
 
-function Chip({ denom, index }: { denom: number; index: number }) {
-  const { base, stripe } = CHIP_COLORS[denom] ?? FALLBACK;
+function Chip({ denom, index, set }: { denom: number; index: number; set: ChipsCosmetic }) {
+  const { base, stripe } = chipColors(set, denom);
   return (
     <motion.div
       initial={{ y: -30, opacity: 0 }}
@@ -49,13 +48,14 @@ export function formatAmount(amount: number, unit: ChipStackProps['unit'] = ''):
 /** Stacks of casino chips; the label is the exact amount, the chips are a greedy breakdown. */
 export function ChipStack({ amount, unit = '', denoms = DEFAULT_DENOMS, showLabel = true, className = '' }: ChipStackProps) {
   const columns = breakdownChips(amount, denoms);
+  const { chips } = useCosmetics();
   return (
     <div className={`inline-flex flex-col items-center gap-1 ${className}`}>
       <div className="flex min-h-8 items-end gap-0.5">
         {columns.map(({ denom, count }) => (
           <div key={denom} className="flex flex-col-reverse items-center">
             {Array.from({ length: Math.min(count, MAX_PER_COLUMN) }, (_, i) => (
-              <Chip key={i} denom={denom} index={i} />
+              <Chip key={i} denom={denom} index={i} set={chips} />
             ))}
           </div>
         ))}

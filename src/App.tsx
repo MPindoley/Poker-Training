@@ -2,6 +2,7 @@ import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { TabBar } from './components/TabBar';
 import { ToastHost } from './components/ui';
+import { ProgressionHost } from './components/progression/ProgressionHost';
 import { HomeScreen } from './screens/HomeScreen';
 import { TrainScreen } from './screens/TrainScreen';
 import { PlayScreen } from './screens/PlayScreen';
@@ -29,9 +30,11 @@ import { LoggedHandScreen } from './screens/review/LoggedHandScreen';
 import { SessionEditorScreen } from './screens/review/SessionEditorScreen';
 import { LessonScreen } from './screens/learn/LessonScreen';
 import { GlossaryScreen } from './screens/learn/GlossaryScreen';
+import { SessionDrillScreen } from './screens/session/SessionDrillScreen';
+import { ProfileScreen } from './screens/ProfileScreen';
 
 /** Full-screen routes (drills, the table) hide the tab bar so nothing covers the controls. */
-const IMMERSIVE = [/^\/train\/[^/]+\/play/, /^\/play\/table/];
+const IMMERSIVE = [/^\/train\/[^/]+\/play/, /^\/train\/session/, /^\/play\/table/];
 
 export default function App() {
   const location = useLocation();
@@ -40,6 +43,7 @@ export default function App() {
     <MotionConfig reducedMotion="user">
       <div className="relative mx-auto min-h-full max-w-[430px]">
         <ToastHost />
+        <ProgressionHost />
         <AnimatePresence mode="wait">
           <motion.main
             key={location.pathname}
@@ -53,6 +57,7 @@ export default function App() {
               <Routes location={location}>
                 <Route path="/" element={<HomeScreen />} />
                 <Route path="/train" element={<TrainScreen />} />
+                <Route path="/train/session" element={<SessionDrillScreen />} />
                 <Route path="/train/math" element={<MathTrainerScreen />} />
                 <Route path="/train/math/play" element={<MathDrillScreen />} />
                 <Route path="/train/math/cheatsheet" element={<CheatSheetScreen />} />
@@ -77,6 +82,7 @@ export default function App() {
                 <Route path="/learn" element={<LearnScreen />} />
                 <Route path="/learn/glossary" element={<GlossaryScreen />} />
                 <Route path="/learn/:id" element={<LessonScreen />} />
+                <Route path="/profile" element={<ProfileScreen />} />
                 <Route path="/styleguide" element={<StyleguideScreen />} />
                 <Route path="/debug/equity" element={<DebugEquityScreen />} />
                 <Route path="*" element={<Navigate to="/" replace />} />

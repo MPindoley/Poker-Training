@@ -1,8 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { bbText, type Point } from './layout';
+import { useCosmetics } from '../../state/useCosmetics';
 
 /** A seat's bet for this street; slides into the pot (centre) when the street ends. */
 export function BetChips({ id, amount, at, center }: { id: string; amount: number; at: Point; center: Point }) {
+  const { base, stripe } = useCosmetics().chips.colors[1]!;
   return (
     <AnimatePresence>
       {amount > 0 && (
@@ -16,7 +18,7 @@ export function BetChips({ id, amount, at, center }: { id: string; amount: numbe
         >
           <div className="-translate-x-1/2 -translate-y-1/2">
             <div className="flex items-center gap-1 rounded-full border-2 border-ink bg-ink/80 py-0.5 pl-0.5 pr-2">
-              <span className="h-4 w-4 rounded-full border-2 border-ink bg-[repeating-conic-gradient(#e5383b_0_30deg,#fff6e0_30deg_60deg)]" />
+              <span className="h-4 w-4 rounded-full border-2 border-ink" style={{ background: `repeating-conic-gradient(${base} 0 30deg, ${stripe} 30deg 60deg)` }} />
               <span className="font-display text-xs text-gold-300">{bbText(amount)}</span>
             </div>
           </div>

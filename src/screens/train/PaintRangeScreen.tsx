@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GRADE_XP, actionStats, formatPercent, scorePaint, type Grade } from '../../engine';
+import { answerXp, actionStats, formatPercent, scorePaint, type Grade } from '../../engine';
 import { useActiveChart } from '../../state/chartStore';
+import { useRewards } from '../../state/rewardsStore';
 import { useDrillStats } from '../../state/drillStatsStore';
 import { useProgress } from '../../state/progressStore';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -18,6 +19,7 @@ export function PaintRangeScreen() {
   const record = useDrillStats((s) => s.record);
   const addXp = useProgress((s) => s.addXp);
   const recordPractice = useProgress((s) => s.recordPractice);
+  const recordPaint = useRewards((s) => s.recordPaint);
 
   const range = chart.rfi(seat)!.ranges.raise!;
   const stats = actionStats(range);
@@ -27,7 +29,8 @@ export function PaintRangeScreen() {
   const submit = () => {
     setSubmitted(true);
     record('preflop.paint', [`preflop.paint:${seat}`, `preflop.seat:${seat}`], grade, performance.now() - start);
-    addXp(GRADE_XP[grade] * 2);
+    addXp(answerXp(grade, 'silver') * 2);
+    recordPaint(chart.id, seat, score.accuracy);
     recordPractice();
   };
   const next = (s = seats[Math.floor(Math.random() * seats.length)]!) => {

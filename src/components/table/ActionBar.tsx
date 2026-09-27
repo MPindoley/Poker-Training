@@ -62,12 +62,12 @@ export function ActionBar({ hand, onAct, bbDollars }: { hand: HandState; onAct: 
         <GameButton color="red" size="md" className="!px-2" onClick={() => onAct({ type: 'fold' })} disabled={la.canCheck}>
           Fold
         </GameButton>
-        <GameButton color="blue" size="md" className="!px-2" onClick={() => onAct({ type: la.canCheck ? 'check' : 'call' })}>
+        <GameButton color="blue" size="md" className="!px-2" sound={la.canCheck ? "tap" : "chips"} onClick={() => onAct({ type: la.canCheck ? 'check' : 'call' })}>
           {la.canCheck ? 'Check' : `Call ${bbText(la.call)}`}
         </GameButton>
         {la.canRaise ? (
           open ? (
-            <GameButton color="gold" size="md" className="!px-1 text-base" onClick={() => onAct({ type: la.isBet ? 'bet' : 'raise', to })}>
+            <GameButton color="gold" size="md" className="!px-1 text-base" sound="chips" onClick={() => onAct({ type: la.isBet ? 'bet' : 'raise', to })}>
               {to >= la.maxTo ? 'All-in' : `${verb.split(' ')[0]} ${bbText(to)}`}
             </GameButton>
           ) : (

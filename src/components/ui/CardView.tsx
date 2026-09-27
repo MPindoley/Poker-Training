@@ -1,7 +1,11 @@
 import { motion } from 'framer-motion';
+import { useEffect } from 'react';
+import { sfx } from '../../lib/sound';
 import { parseCard, type Card, type Suit } from '../../engine';
 import { useSettings } from '../../state/settingsStore';
 import { SuitIcon } from './SuitIcon';
+import { CardBackFace } from './CardBack';
+import { useCosmetics } from '../../state/useCosmetics';
 
 export type CardSize = 'sm' | 'md' | 'lg';
 
@@ -32,6 +36,10 @@ export interface CardViewProps {
 
 export function CardView({ card, faceDown, size = 'md', fourColor, dealt, className = '' }: CardViewProps) {
   const savedFourColor = useSettings((s) => s.fourColorDeck);
+  const { cardBack } = useCosmetics();
+  useEffect(() => {
+    if (dealt) sfx('deal');
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const four = fourColor ?? savedFourColor;
   const s = SIZE[size];
   const c = typeof card === 'string' ? parseCard(card) : card;
@@ -45,16 +53,14 @@ export function CardView({ card, faceDown, size = 'md', fourColor, dealt, classN
       className={[
         'relative shrink-0 overflow-hidden border-ink shadow-chunky-sm',
         s.box,
-        showBack ? 'bg-felt-700' : 'bg-gradient-to-b from-white to-cream',
+        showBack ? 'bg-ink' : 'bg-gradient-to-b from-white to-cream',
         className,
       ].join(' ')}
       aria-label={showBack ? 'face-down card' : `${c.rank}${c.suit}`}
       role="img"
     >
       {showBack ? (
-        <div className="absolute inset-1 rounded-[0.4rem] border-2 border-gold-300/80 bg-[repeating-linear-gradient(45deg,transparent_0_6px,rgb(255_226_122/0.25)_6px_8px),repeating-linear-gradient(-45deg,transparent_0_6px,rgb(255_226_122/0.25)_6px_8px)]">
-          <div className="absolute left-1/2 top-1/2 h-1/3 w-1/3 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-sm border-2 border-ink bg-gold-500" />
-        </div>
+        <CardBackFace back={cardBack} />
       ) : (
         <div className={`absolute inset-0 ${suitColorClass(c.suit, four)}`}>
           <div className="absolute left-1 top-0.5 flex flex-col items-center leading-none">

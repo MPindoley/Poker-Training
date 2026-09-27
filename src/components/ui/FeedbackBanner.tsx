@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { haptic } from '../../lib/haptics';
+import { sfx } from '../../lib/sound';
 import { GRADE_LABEL } from '../../engine';
 import type { ToastTone } from '../../state/toastStore';
 import { Celebration } from './Celebration';
@@ -28,6 +30,17 @@ export interface FeedbackBannerProps {
 export function FeedbackBanner({ tone, title, children, math, animate = true, className = '' }: FeedbackBannerProps) {
   const t = TONE[tone];
   const shake = animate && tone === 'mistake';
+  useEffect(() => {
+    if (!animate) return;
+    if (tone === 'best') {
+      sfx('correct');
+      haptic('success');
+    } else if (tone === 'acceptable') sfx('acceptable');
+    else if (tone === 'mistake') {
+      sfx('wrong');
+      haptic('error');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <motion.div
       initial={{ y: 30, opacity: 0, scale: 0.9 }}

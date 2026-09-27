@@ -3,10 +3,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   DIFFICULTY_INFO,
   GRADE_LABEL,
-  GRADE_XP,
   ROUND_LENGTH,
+  answerXp,
   buildQuestion,
   formatPercent,
+  roundBonusXp,
   type Choice,
   type Grade,
   type Question,
@@ -14,6 +15,7 @@ import {
 } from '../../engine';
 import { useDrillStats } from '../../state/drillStatsStore';
 import { useProgress } from '../../state/progressStore';
+import { useRewards } from '../../state/rewardsStore';
 import { toast } from '../../state/toastStore';
 import { Celebration, FeedbackBanner, GameButton, Panel, ProgressBar, RichText } from '../ui';
 import { QuestionContextView } from './QuestionView';
@@ -57,7 +59,8 @@ function Timer({ start, limit, stopped }: { start: number; limit: number | null;
 export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion, length = ROUND_LENGTH }: DrillRunnerProps) {
   const skills = useDrillStats((s) => s.skills);
   const record = useDrillStats((s) => s.record);
-  const recordStreak = useDrillStats((s) => s.recordStreak);
+  const runs = useDrillStats((s) => s.runs);
+  const recordRound = useRewards((s) => s.recordRound);
   const addXp = useProgress((s) => s.addXp);
   const recordPractice = useProgress((s) => s.recordPractice);
 
@@ -76,6 +79,7 @@ export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion,
   const [start, setStart] = useState(() => performance.now());
   const [error, setError] = useState<string | null>(null);
   const [showSummary, setShowSummary] = useState(false);
+  const [bonus, setBonus] = useState<{ xp: number; working: string } | null>(null);
 
   const question = useMemo(() => {
     try {
@@ -88,14 +92,13 @@ export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion,
 
   const limit = DIFFICULTY_INFO[spec.difficulty].secondsPerQuestion;
   const answered = answer !== null || timedOut;
-  const multiplier = DIFFICULTY_INFO[spec.difficulty].xpMultiplier;
 
   const finishAnswer = (grade: Grade) => {
     if (!question) return;
     const ms = performance.now() - start;
     record(question.kind, [question.skill, ...(question.tags ?? [])], grade, ms);
     setResults((r) => [...r, { kind: question.kind, grade, ms }]);
-    const xp = Math.round(GRADE_XP[grade] * multiplier);
+    const xp = answerXp(grade, question.difficulty ?? spec.difficulty);
     addXp(xp);
     setXpEarned((x) => x + xp);
     if (grade === 'mistake') {
@@ -104,8 +107,9 @@ export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion,
       const s = streak + 1;
       setStreak(s);
       setBestStreak((b) => Math.max(b, s));
-      recordStreak(question.kind, s);
-      if (grade === 'best') toast({ tone: 'best', title: s >= 3 ? `${s} in a row!` : 'Nice!', message: `+${xp} XP` });
+      // The kind's run carries across rounds (Pot Odds Pro counts 50 in a row).
+      const run = (runs[question.kind] ?? 0) + 1;
+      if (grade === 'best') toast({ tone: 'best', title: s >= 3 ? `${s} in a row!` : 'Nice!', message: run > s && run >= 5 ? `+${xp} XP · ${run} straight on this drill` : `+${xp} XP` });
     }
   };
 
@@ -129,6 +133,11 @@ export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion,
 
   const next = () => {
     if (index >= length - 1) {
+      const right = results.filter((r) => r.grade !== 'mistake').length;
+      const bonus = roundBonusXp(right, results.length, spec.difficulty);
+      setBonus(bonus);
+      if (bonus.xp) addXp(bonus.xp);
+      recordRound(right, results.length, spec.difficulty);
       recordPractice();
       setShowSummary(true);
       return;
@@ -148,6 +157,7 @@ export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion,
     setBestStreak(0);
     setResults([]);
     setXpEarned(0);
+    setBonus(null);
     setShowSummary(false);
     setStart(performance.now());
   };
@@ -164,7 +174,7 @@ export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion,
   }
 
   if (showSummary) {
-    return <RoundSummary title={title} results={results} bestStreak={bestStreak} xp={xpEarned} onAgain={restart} onExit={onExit} />;
+    return <RoundSummary title={title} results={results} bestStreak={bestStreak} xp={xpEarned} bonus={bonus} onAgain={restart} onExit={onExit} />;
   }
   if (!question) return null;
 
@@ -262,9 +272,11 @@ function RoundSummary({
   results,
   bestStreak,
   xp,
+  bonus,
   onAgain,
   onExit,
 }: {
+  bonus: { xp: number; working: string } | null;
   title: string;
   results: RoundResult[];
   bestStreak: number;
@@ -299,7 +311,13 @@ function RoundSummary({
         ))}
       </div>
       <Panel tone="felt" className="text-center">
-        <div className="font-display text-3xl text-gold-300">+{xp} XP</div>
+        <div className="font-display text-3xl text-gold-300">+{xp + (bonus?.xp ?? 0)} XP</div>
+        {bonus && (
+          <div className="mt-1 text-xs font-bold text-cream/85">
+            {xp} from answers + {bonus.xp} accuracy bonus
+            <div className="mt-1 rounded-lg bg-ink/60 px-2 py-1 font-mono text-[11px] text-gold-300">{bonus.working}</div>
+          </div>
+        )}
       </Panel>
       <div className="grid grid-cols-2 gap-3">
         <GameButton color="cream" onClick={onExit}>

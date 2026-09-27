@@ -4,6 +4,7 @@ import { CardView } from '../ui';
 import { BetChips, PotPush } from './BetChips';
 import { TableSeatView } from './TableSeat';
 import { bbText, betPoint, seatPoint } from './layout';
+import { useCosmetics } from '../../state/useCosmetics';
 
 function lastActionText(e: ActionEvent | undefined): string | null {
   if (!e) return null;
@@ -30,14 +31,13 @@ export function PokerTable({
   bots,
   positions,
   showBadges,
-  theme = 'felt',
 }: {
   hand: HandState;
   bots: Record<number, BotProfile | undefined>;
   positions: Record<number, string>;
   showBadges: boolean;
-  theme?: string;
 }) {
+  const { theme, felt } = useCosmetics();
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 358, h: 440 });
   useLayoutEffect(() => {
@@ -56,10 +56,14 @@ export function PokerTable({
   const winners = new Set(Object.keys(hand.result?.collected ?? {}).map(Number));
 
   return (
-    <div ref={ref} className="relative h-[min(460px,56dvh)] w-full select-none" data-theme={theme}>
+    <div ref={ref} className="relative h-[min(460px,56dvh)] w-full select-none" data-theme={theme.id}>
+      <div className="pointer-events-none absolute inset-0 rounded-[50%] opacity-40 blur-2xl" style={{ background: `radial-gradient(closest-side, ${theme.glow}, transparent)` }} />
       {/* Wood rail and felt */}
-      <div className="wood-grain absolute inset-x-1 inset-y-6 rounded-[48%] border-[3px] border-ink shadow-chunky" />
-      <div className="felt-surface absolute inset-x-4 inset-y-9 rounded-[48%] border-[3px] border-ink" style={{ boxShadow: 'inset 0 6px 18px rgba(0,0,0,0.45)' }} />
+      <div className="wood-grain absolute inset-x-1 inset-y-6 rounded-[48%] border-[3px] border-ink shadow-chunky" style={{ backgroundImage: `repeating-linear-gradient(100deg, rgb(255 255 255 / 0.06) 0 2px, transparent 2px 9px, rgb(0 0 0 / 0.07) 9px 11px, transparent 11px 19px), linear-gradient(to bottom, ${theme.railLight}, ${theme.railDark})` }} />
+      <div
+        className="felt-surface absolute inset-x-4 inset-y-9 rounded-[48%] border-[3px] border-ink"
+        style={{ backgroundColor: felt.dark, backgroundImage: `radial-gradient(ellipse at 50% 30%, ${felt.light}, ${felt.dark} 80%), radial-gradient(rgb(0 0 0 / 0.1) 1px, transparent 1px)`, backgroundSize: '100% 100%, 3px 3px', boxShadow: 'inset 0 6px 18px rgba(0,0,0,0.45)' }}
+      />
       <div className="pointer-events-none absolute inset-x-10 inset-y-16 rounded-[48%] border-2 border-gold-300/25" />
 
       {/* Pot and board */}
