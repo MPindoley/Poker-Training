@@ -6,6 +6,7 @@ import { makePreflopDrills } from '../preflop/drills';
 import { MATH_DRILLS } from '../drills/math';
 import { THEME_NAMES } from '../postflop/scenario';
 import { makeExploitDrills } from '../exploit/drills';
+import { makeEquityDrills } from '../lab/drills';
 import { createRng } from '../rng';
 import {
   ACHIEVEMENTS,
@@ -67,6 +68,8 @@ describe('skills', () => {
     for (const d of makePreflopDrills({ chart: charts['cash-6max-100bb']!, skills: {} })) titles.set(d.kind, d.title);
     for (const d of makeExploitDrills({ chart: charts['cash-6max-100bb']! })) titles.set(d.kind, d.title);
     for (const [t, name] of Object.entries(THEME_NAMES)) titles.set(`postflop.${t}`, name);
+    for (const d of makeEquityDrills(charts['home-40bb']!)) titles.set(d.kind, d.title);
+    titles.set('lab.guess', 'Range Lab guesses'); // recorded by the Range Lab screen, not a drill
     for (const k of TRAINABLE_KINDS) expect(titles.get(k.kind), k.kind).toBe(k.title);
   });
   it('shrinks accuracy toward 50%', () => {

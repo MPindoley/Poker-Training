@@ -5,7 +5,7 @@ import { kvGet, kvSet } from './db';
 import { migrateSection } from './migrations';
 
 /** Every persisted store name (see the `name` option of each Zustand persist store). */
-export const STORE_KEYS = ['progress', 'settings', 'drill-stats', 'charts', 'profiles', 'play-log', 'hand-log', 'learn', 'rewards', 'live'] as const;
+export const STORE_KEYS = ['progress', 'settings', 'drill-stats', 'charts', 'profiles', 'play-log', 'hand-log', 'learn', 'rewards', 'live', 'lab'] as const;
 
 export interface Backup {
   app: 'felt-academy';

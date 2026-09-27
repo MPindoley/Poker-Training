@@ -16,6 +16,21 @@ export function TrainScreen() {
   return (
     <div className="space-y-4">
       <ScreenHeader title="Train" subtitle="Pick a module" />
+      <motion.button
+        type="button"
+        initial={{ y: 30, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+        whileTap={{ scaleX: 1.03, scaleY: 0.94, y: 3 }}
+        onClick={() => navigate('/train/lab')}
+        className="gloss flex w-full items-center gap-3 rounded-3xl border-[3px] border-ink bg-gradient-to-b from-[#5fe0c0] to-emerald-dark p-3 text-left shadow-chunky"
+      >
+        <span className="text-outline grid h-14 w-14 shrink-0 place-items-center rounded-2xl border-[3px] border-ink bg-ink/25 font-display text-xl text-white">Lab</span>
+        <span>
+          <span className="text-outline-sm block font-display text-2xl leading-tight text-white">Range Lab</span>
+          <span className="block text-xs font-bold text-white/90">Any hands, any ranges, any board: equity, blockers, best and worst next cards</span>
+        </span>
+      </motion.button>
       <div className="grid grid-cols-2 gap-3">
         {MODULES.map((m, i) => (
           <motion.button

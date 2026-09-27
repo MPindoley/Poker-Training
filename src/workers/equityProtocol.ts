@@ -8,6 +8,11 @@ import {
   buildCharts,
   calculateEquity,
   pushChart,
+  runLab,
+  nextCardGrid,
+  type LabScenario,
+  type LabResult,
+  type NextCardGrid,
   type ShoveResult,
   type AnalyzeOptions,
   type ChartJson,
@@ -56,10 +61,16 @@ export interface PushJob {
   callFraction: number;
 }
 
-export type EngineJob = EquityJob | AnalyzeJob | LoggedJob | PushJob;
+export interface LabJob {
+  id: number;
+  kind: 'lab' | 'labGrid';
+  scenario: LabScenario;
+}
+
+export type EngineJob = EquityJob | AnalyzeJob | LoggedJob | PushJob | LabJob;
 
 export type EquityReply = { id: number; ok: true; result: EquityResult } | { id: number; ok: false; error: string };
-export type EngineReply = { id: number; ok: true; result: EquityResult | SpotAnalysis | LoggedHandAnalysis | Record<string, ShoveResult> } | { id: number; ok: false; error: string };
+export type EngineReply = { id: number; ok: true; result: EquityResult | SpotAnalysis | LoggedHandAnalysis | Record<string, ShoveResult> | LabResult | NextCardGrid } | { id: number; ok: false; error: string };
 
 /** Pure handler, shared by the worker and by tests. */
 export function handleEquityJob(job: EquityJob): EquityReply {
@@ -71,6 +82,13 @@ export function handleEquityJob(job: EquityJob): EquityReply {
 }
 
 export function handleEngineJob(job: EngineJob): EngineReply {
+  if ('scenario' in job) {
+    try {
+      return { id: job.id, ok: true, result: job.kind === 'lab' ? runLab(job.scenario) : nextCardGrid(job.scenario) };
+    } catch (e) {
+      return { id: job.id, ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
   if (job.kind === 'push') {
     try {
       return { id: job.id, ok: true, result: pushChart(job.stack, job.callFraction) };
@@ -93,5 +111,5 @@ export function handleEngineJob(job: EngineJob): EngineReply {
       return { id: job.id, ok: false, error: e instanceof Error ? e.message : String(e) };
     }
   }
-  return handleEquityJob(job);
+  return handleEquityJob(job as EquityJob);
 }

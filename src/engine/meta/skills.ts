@@ -4,9 +4,9 @@
  */
 import { THEME_NAMES } from '../postflop/scenario';
 
-export type SkillArea = 'math' | 'preflop' | 'postflop' | 'exploits' | 'reading';
+export type SkillArea = 'math' | 'preflop' | 'postflop' | 'exploits' | 'reading' | 'equity';
 
-export const SKILL_AREAS: readonly SkillArea[] = ['math', 'preflop', 'postflop', 'exploits', 'reading'];
+export const SKILL_AREAS: readonly SkillArea[] = ['math', 'preflop', 'postflop', 'exploits', 'reading', 'equity'];
 
 export const AREA_NAMES: Record<SkillArea, string> = {
   math: 'Math',
@@ -14,6 +14,7 @@ export const AREA_NAMES: Record<SkillArea, string> = {
   postflop: 'Postflop',
   exploits: 'Exploits',
   reading: 'Hand Reading',
+  equity: 'Equity Intuition',
 };
 
 export interface TrainableKind {
@@ -52,6 +53,8 @@ export const TRAINABLE_KINDS: readonly TrainableKind[] = [
   { kind: 'exploit.efls', title: 'Early Folder, Late Sticker', area: 'exploits' },
   { kind: 'exploit.image', title: 'Your Table Image', area: 'exploits' },
   { kind: 'exploit.imageShift', title: 'Image Shifts', area: 'exploits' },
+  { kind: 'equity.guess', title: 'Equity Eye', area: 'equity' },
+  { kind: 'lab.guess', title: 'Range Lab guesses', area: 'equity' },
 ];
 
 /** Area a drill kind counts toward (null for kinds outside the radar). */
@@ -62,6 +65,7 @@ export function areaOfKind(kind: string): SkillArea | null {
   if (kind.startsWith('math.')) return 'math';
   if (kind.startsWith('postflop.')) return 'postflop';
   if (kind.startsWith('exploit.')) return 'exploits';
+  if (kind.startsWith('equity.') || kind.startsWith('lab.')) return 'equity';
   return null;
 }
 

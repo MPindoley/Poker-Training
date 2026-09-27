@@ -6,6 +6,7 @@ import { useChartStore, useCharts } from './chartStore';
 import { useProfiles } from './profilesStore';
 import { useSettings } from './settingsStore';
 import { useLive } from './liveStore';
+import { useLab } from './labStore';
 import { useDrillStats } from './drillStatsStore';
 import { useHandLog } from './handLogStore';
 import { useLearn } from './learnStore';
@@ -23,7 +24,7 @@ export function useProgressHydrated(): boolean {
   return useHydrated(PERSISTED);
 }
 
-const APP_STORES: Persisted[] = [...PERSISTED, useSettings, useChartStore, useProfiles, useLive];
+const APP_STORES: Persisted[] = [...PERSISTED, useSettings, useChartStore, useProfiles, useLive, useLab];
 /** True once every saved store has loaded (the app shows a splash until then). */
 export function useAppHydrated(): boolean {
   return useHydrated(APP_STORES);

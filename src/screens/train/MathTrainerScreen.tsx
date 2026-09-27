@@ -99,6 +99,17 @@ export function MathTrainerScreen() {
           </GameButton>
         </div>
       </Panel>
+      <Panel tone="night">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="font-display text-xl">Equity Eye</div>
+            <div className="text-sm font-semibold text-cream/85">Your hand vs a real opening range: guess the equity</div>
+          </div>
+          <GameButton color="green" size="sm" onClick={() => play('equity.guess')}>
+            Play
+          </GameButton>
+        </div>
+      </Panel>
     </div>
   );
 }

@@ -45,13 +45,13 @@ Baseline (before starting): 462 tests pass, typecheck clean, build OK.
 - [x] Learn: Table image lesson interactive example
 
 ## Phase 5: Range Lab
-- [ ] /train/lab screen + Train card (keep /debug/equity)
-- [ ] 2–6 players, hand or range (paint / notation / chart spot / profile)
-- [ ] Board stepping, dead cards
-- [ ] Results: equity, buckets, beats/ties/loses list, range & nut advantage, blockers, next-card heat grid
-- [ ] Guess mode with XP + "equity intuition" in radar
-- [ ] Save named scenarios; share by URL
-- [ ] Tests for pure parts
+- [x] /train/lab screen + Train card (keep /debug/equity)
+- [x] 2–6 players, hand or range (paint / notation / chart spot / profile)
+- [x] Board stepping, dead cards
+- [x] Results: equity, buckets, beats/ties/loses list, range & nut advantage, blockers, next-card heat grid
+- [x] Guess mode with XP + "equity intuition" in radar
+- [x] Save named scenarios; share by URL
+- [x] Tests for pure parts
 
 ## Phase 6: Confidence and source labels, postflop solver import
 - [ ] Confidence (clear / close / model-dependent) on postflop, exploit, hand-review grades
@@ -92,6 +92,10 @@ Baseline (before starting): 462 tests pass, typecheck clean, build OK.
 - Image changes opponents through a per-street "stickiness" s: continue chance p → p^(1/s) (stays in 0..1, a monster never folds). Tight and Feared = fold more preflop/flop, stickier turn/river. Reactivity scales the shift (0 = none); archetype defaults: station 0.3, maniac 0.5, gambler 0.6, TAG 1, EFLS 1.2, nit 1.5. All in `IMAGE_STICKINESS` / `ARCHETYPE_REACTIVITY` — assumptions, not solver data.
 - Bots apply image only when responding to hero's bet (or betting into hero); the coach and range narrowing use the same imaged models so advice matches what the bots do.
 - Play setup gains "Table image meter" (on by default) and "Hard mode" (no coach, no meter). Table config isn't persisted, so no migration. `HandReview.imageShift` is a new optional field in saved Play sessions (older records simply lack it).
+
+- Range Lab (/train/lab): pure engine in src/engine/lab (runLab, nextCardGrid, bucketBreakdown, showdownVsRange, blockerEffect, chartRangeOptions, encode/decodeScenario); runs in the engine worker. Player 1 is "you". Range/nut advantage is shown when players 1 and 2 are both ranges (nut advantage = share of each range in the monster bucket). "What beats you" compares made hands right now; equity covers the run-outs.
+- The next-card explorer uses Monte Carlo (6,000 run-outs per card) for speed; best/worst lists quote those numbers.
+- A 6th radar area, "Equity Intuition", counts Range Lab guesses (`lab.guess`, Best within 5 points, Acceptable within 10) and a new multiple-choice drill "Equity Eye" (`equity.guess`: your hand vs a real opening range on a random flop), which sessions, warm-ups and Daily Training use. Warm-up shares were rebalanced to make room (10% each venue). New `lab` store (saved scenarios, guess history) is included in backups; it's new, so no migration.
 
 ## Open questions for Matt
 - Home-game limper / squeeze / 4-bet ranges (src/data/ranges/home-40bb.json) are my best judgment for a loose-passive 40bb game. Please sanity-check especially: iso ranges vs 1 limper from the button (44+, A7s+, …) and the value-only squeeze ranges.

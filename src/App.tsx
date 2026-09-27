@@ -13,6 +13,7 @@ import { ReviewScreen } from './screens/ReviewScreen';
 import { LearnScreen } from './screens/LearnScreen';
 import { StyleguideScreen } from './screens/StyleguideScreen';
 import { DebugEquityScreen } from './screens/DebugEquityScreen';
+import { RangeLabScreen } from './screens/train/RangeLabScreen';
 import { MathTrainerScreen } from './screens/train/MathTrainerScreen';
 import { MathDrillScreen } from './screens/train/MathDrillScreen';
 import { CheatSheetScreen } from './screens/train/CheatSheetScreen';
@@ -82,6 +83,7 @@ export default function App() {
                   <Route path="/train/exploit/profile/:id" element={<ProfileEditorScreen />} />
                   <Route path="/train/exploit/play" element={<ExploitDrillScreen />} />
                   <Route path="/train/exploit/cards" element={<PlayerCardsScreen />} />
+                  <Route path="/train/lab" element={<RangeLabScreen />} />
                   <Route path="/play" element={<PlayScreen />} />
                   <Route path="/play/table" element={<TableScreen />} />
                   <Route path="/play/summary" element={<SessionSummaryScreen />} />

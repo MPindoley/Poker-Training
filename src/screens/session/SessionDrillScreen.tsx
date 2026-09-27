@@ -8,6 +8,7 @@ import {
   VENUE_NAMES,
   buildQuestion,
   makeExploitDrills,
+  makeEquityDrills,
   makePostflopDrills,
   makePreflopDrills,
   planLength,
@@ -65,6 +66,7 @@ export function SessionDrillScreen() {
       ...makePreflopDrills({ chart: venue === 'home' ? home : six, skills }),
       ...makePostflopDrills({ chart: six, shortChart: home, model: REGULAR_MODEL, filters: {} }),
       ...makeExploitDrills({ chart: six }),
+      ...makeEquityDrills(venue === 'home' ? home : six),
     ];
     return new Map(all.map((d) => [d.kind, d]));
   }, [charts, venue, skills]);
