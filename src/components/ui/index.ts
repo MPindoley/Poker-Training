@@ -10,3 +10,5 @@ export * from './FeedbackBanner';
 export * from './ToastHost';
 export * from './Celebration';
 export * from './RichText';
+export * from './StrategyGrid';
+export * from './WeightGrid';

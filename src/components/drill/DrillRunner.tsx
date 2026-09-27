@@ -17,6 +17,7 @@ import { useProgress } from '../../state/progressStore';
 import { toast } from '../../state/toastStore';
 import { Celebration, FeedbackBanner, GameButton, Panel, ProgressBar, RichText } from '../ui';
 import { QuestionContextView } from './QuestionView';
+import { StrategyGrid } from '../ui/StrategyGrid';
 import { FlameIcon } from '../icons/FlameIcon';
 
 export interface RoundResult {
@@ -92,7 +93,7 @@ export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion,
   const finishAnswer = (grade: Grade) => {
     if (!question) return;
     const ms = performance.now() - start;
-    record(question.kind, question.skill, grade, ms);
+    record(question.kind, [question.skill, ...(question.tags ?? [])], grade, ms);
     setResults((r) => [...r, { kind: question.kind, grade, ms }]);
     const xp = Math.round(GRADE_XP[grade] * multiplier);
     addXp(xp);
@@ -208,7 +209,8 @@ export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion,
               title={timedOut ? "Time's up" : outcome === 'best' ? 'Correct!' : outcome === 'acceptable' ? 'Close enough' : `Answer: ${bestLabel}`}
               math={question.explanation.steps}
             >
-              <RichText text={question.explanation.summary} />
+              <RichText text={answer?.feedback ?? question.explanation.summary} />
+              {question.visual && <StrategyGrid visual={question.visual} className="mt-2" />}
             </FeedbackBanner>
           )}
         </motion.div>

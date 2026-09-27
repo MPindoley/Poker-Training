@@ -10,6 +10,8 @@ interface SettingsState {
   setSoundOn: (on: boolean) => void;
   mathDifficulty: Difficulty;
   setMathDifficulty: (d: Difficulty) => void;
+  preflopDifficulty: Difficulty;
+  setPreflopDifficulty: (d: Difficulty) => void;
 }
 
 export const useSettings = create<SettingsState>()(
@@ -21,6 +23,8 @@ export const useSettings = create<SettingsState>()(
       setSoundOn: (soundOn) => set({ soundOn }),
       mathDifficulty: 'bronze',
       setMathDifficulty: (mathDifficulty) => set({ mathDifficulty }),
+      preflopDifficulty: 'bronze',
+      setPreflopDifficulty: (preflopDifficulty) => set({ preflopDifficulty }),
     }),
     { name: 'settings', storage: createJSONStorage(() => idbStateStorage) },
   ),

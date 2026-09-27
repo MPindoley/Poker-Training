@@ -1,0 +1,49 @@
+{
+  "id": "cash-6max-100bb",
+  "name": "6-max cash, 100bb",
+  "description": "Close approximation of widely published solver-informed 6-max charts for 100bb cash games. Not solver output — edit anything in the Range Editor.",
+  "stackBb": 100,
+  "seats": ["UTG", "HJ", "CO", "BTN", "SB", "BB"],
+  "openSizeBb": { "default": 2.5, "SB": 3 },
+  "rfi": {
+    "UTG": "33+, A2s+, K8s+, Q9s+, J9s+, T8s+, 98s, 87s, ATo+, KJo+, QJo",
+    "HJ": "22+, A2s+, K7s+, Q8s+, J8s+, T8s+, 97s+, 87s, 76s, ATo+, KTo+, QTo+, JTo",
+    "CO": "22+, A2s+, K4s+, Q6s+, J7s+, T7s+, 96s+, 86s+, 75s+, 65s, 54s, A8o+, A5o, KTo+, QTo+, JTo",
+    "BTN": "22+, A2s+, K2s+, Q2s+, J4s+, T6s+, 95s+, 85s+, 74s+, 64s+, 53s+, 43s, A2o+, K8o+, Q9o+, J9o+, T8o+, 98o, 87o",
+    "SB": "22+, A2s+, K2s+, Q3s+, J5s+, T6s+, 95s+, 85s+, 74s+, 64s+, 53s+, 43s, A2o+, K7o+, Q9o+, J9o+, T8o+, 98o"
+  },
+  "vsOpen": {
+    "HJ": {
+      "UTG": { "3bet": "QQ+, AKs, AKo", "call": "77-JJ, AJs-AQs, KQs" }
+    },
+    "CO": {
+      "UTG": { "3bet": "QQ+, AKs, AKo", "call": "55-JJ, AJs-AQs, KQs, QJs, JTs" },
+      "HJ": { "3bet": "JJ+, AQs+, AKo, A5s", "call": "44-TT, ATs-AJs, KTs+, QTs+, JTs, T9s, AQo" }
+    },
+    "BTN": {
+      "UTG": { "3bet": "QQ+, AKs, AKo, A5s", "call": "22-JJ, ATs-AQs, KTs+, QTs+, JTs, T9s, 98s, AQo" },
+      "HJ": { "3bet": "JJ+, AQs+, AKo, A5s-A4s, KQs@50", "call": "22-TT, A9s-AJs, K9s-KJs, KQs@50, Q9s+, J9s+, T9s, 98s, 87s, AJo-AQo, KQo" },
+      "CO": { "3bet": "TT+, AJs+, AQo+, A5s-A3s, KQs, 76s@50", "call": "22-99, A8s-ATs, K9s-KJs, Q9s+, J9s+, T8s+, 97s+, 87s, 76s@50, 65s, AJo, KQo" }
+    },
+    "SB": {
+      "UTG": { "3bet": "TT+, AJs+, KQs, AKo, A5s", "call": "" },
+      "HJ": { "3bet": "99+, ATs+, KJs+, QJs, AQo+, A5s-A4s", "call": "" },
+      "CO": { "3bet": "88+, A8s+, A5s-A3s, KTs+, QTs+, JTs, AJo+, KQo", "call": "" },
+      "BTN": { "3bet": "66+, A2s+, K9s+, Q9s+, J9s+, T9s, 98s, ATo+, KJo+, QJo", "call": "" }
+    },
+    "BB": {
+      "UTG": { "3bet": "QQ+, AKs, AKo, A5s-A4s", "call": "22-JJ, A6s-AQs, A3s-A2s, K8s+, Q9s+, J9s+, T8s+, 97s+, 86s+, 75s+, 65s, 54s, ATo-AQo, KJo+, QJo" },
+      "HJ": { "3bet": "JJ+, AQs+, AKo, A5s-A3s, KQs@50", "call": "22-TT, A6s-AJs, A2s, K7s-KJs, KQs@50, Q8s+, J8s+, T8s+, 97s+, 86s+, 75s+, 64s+, 54s, A9o-AQo, KTo+, QTo+, JTo" },
+      "CO": { "3bet": "TT+, AJs+, AQo+, A5s-A2s, KQs, K9s@50, 76s@50, 65s@50", "call": "22-99, A6s-ATs, K4s-K8s, KTs-KJs, K9s@50, Q6s+, J7s+, T7s+, 96s+, 85s+, 74s+, 63s+, 53s+, 43s, 76s@50, 65s@50, A7o-AJo, K9o+, Q9o+, J9o+, T9o, 98o" },
+      "BTN": { "3bet": "99+, ATs+, AJo+, A5s-A2s, KJs+, K9s@50, Q9s@50, J9s@50, 65s@50, 54s@50, KQo@50", "call": "22-88, A6s-A9s, K2s-K8s, KTs, K9s@50, Q2s-Q8s, QTs+, Q9s@50, J4s-J8s, JTs, J9s@50, T6s+, 95s+, 84s+, 74s+, 63s+, 52s+, 42s+, 65s@50, 54s@50, A2o-ATo, K7o-KJo, KQo@50, Q8o+, J8o+, T8o+, 97o+, 87o, 76o" },
+      "SB": { "3bet": "88+, A9s+, ATo+, A5s-A2s, K9s+, KJo+, QTs+, JTs, T9s@50, 98s@50, 76s@50", "call": "22-77, A6s-A8s, K2s-K8s, Q2s-Q9s, J4s-J9s, T6s-T8s, T9s@50, 95s-97s, 98s@50, 84s+, 74s-75s, 76s@50, 63s+, 53s+, 43s, A2o-A9o, K5o-KTo, Q8o+, J8o+, T8o+, 97o+, 87o" }
+    }
+  },
+  "vs3bet": {
+    "UTG": { "4bet": "KK+, AKs, A5s@50", "call": "TT-QQ, AJs-AQs, KQs, AKo, QJs@50, JTs@50" },
+    "HJ": { "4bet": "KK+, AKs, AKo@50, A5s-A4s@50", "call": "99-QQ, ATs-AQs, KJs+, QJs, JTs, T9s@50, AQo, AKo@50" },
+    "CO": { "4bet": "QQ+, AKs, AKo, A5s-A4s", "call": "77-JJ, A9s-AQs, KTs+, QTs+, JTs, T9s, 98s, AQo" },
+    "BTN": { "4bet": "QQ+, AKs, AKo, A5s-A3s, K9s@25", "call": "55-JJ, A6s-AQs, K9s@75, KTs+, Q9s+, J9s+, T8s+, 97s+, 87s, 76s, 65s, AJo-AQo, KQo" },
+    "SB": { "4bet": "QQ+, AKs, AKo, A5s-A4s", "call": "66-JJ, A9s-AQs, KTs+, QTs+, JTs, T9s, 98s, AQo" }
+  }
+}

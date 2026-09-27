@@ -22,6 +22,8 @@ export interface Choice {
   grade: Grade;
   /** Optional note shown next to this choice after answering (e.g. its EV). */
   note?: string;
+  /** Optional one-line explanation shown when this choice is picked (instead of the summary). */
+  feedback?: string;
 }
 
 export interface Fact {
@@ -46,6 +48,17 @@ export interface Explanation {
   steps: string[];
 }
 
+/** A 13x13 strategy picture shown with the explanation (preflop drills). */
+export interface StrategyVisual {
+  kind: 'strategy';
+  /** Hand class -> action -> frequency (0..1). */
+  cells: Record<string, Partial<Record<string, number>>>;
+  /** Legend, in paint order. Actions not listed are treated as fold. */
+  actions: { id: string; label: string; color: string }[];
+  highlight?: string;
+  caption?: string;
+}
+
 export interface Question {
   /** Unique per generated question (kind + seed). */
   id: string;
@@ -58,6 +71,9 @@ export interface Question {
   context: QuestionContext;
   choices: Choice[];
   explanation: Explanation;
+  /** Extra skill keys to record the answer under (e.g. seat and hand-group tracking). */
+  tags?: string[];
+  visual?: StrategyVisual;
 }
 
 export function bestChoice(q: Question): Choice {

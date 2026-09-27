@@ -9,6 +9,7 @@ export interface Candidate {
   label: string;
   grade: Grade;
   note?: string;
+  feedback?: string;
 }
 
 /**

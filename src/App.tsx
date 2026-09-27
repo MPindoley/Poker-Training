@@ -12,6 +12,10 @@ import { DebugEquityScreen } from './screens/DebugEquityScreen';
 import { MathTrainerScreen } from './screens/train/MathTrainerScreen';
 import { MathDrillScreen } from './screens/train/MathDrillScreen';
 import { CheatSheetScreen } from './screens/train/CheatSheetScreen';
+import { PreflopTrainerScreen } from './screens/train/PreflopTrainerScreen';
+import { PreflopDrillScreen } from './screens/train/PreflopDrillScreen';
+import { PaintRangeScreen } from './screens/train/PaintRangeScreen';
+import { RangeEditorScreen } from './screens/train/RangeEditorScreen';
 
 /** Full-screen routes (drills, the table) hide the tab bar so nothing covers the controls. */
 const IMMERSIVE = [/^\/train\/[^/]+\/play/, /^\/play\/table/];
@@ -39,6 +43,10 @@ export default function App() {
                 <Route path="/train/math" element={<MathTrainerScreen />} />
                 <Route path="/train/math/play" element={<MathDrillScreen />} />
                 <Route path="/train/math/cheatsheet" element={<CheatSheetScreen />} />
+                <Route path="/train/preflop" element={<PreflopTrainerScreen />} />
+                <Route path="/train/preflop/play" element={<PreflopDrillScreen />} />
+                <Route path="/train/preflop/paint" element={<PaintRangeScreen />} />
+                <Route path="/train/preflop/editor" element={<RangeEditorScreen />} />
                 <Route path="/play" element={<PlayScreen />} />
                 <Route path="/review" element={<ReviewScreen />} />
                 <Route path="/learn" element={<LearnScreen />} />
