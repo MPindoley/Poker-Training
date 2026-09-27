@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { DecisionReview, LoggedHand, RealSession } from '../engine';
 import { idbStateStorage } from '../storage/db';
+import { STORE_VERSIONS, migrateHandLogState } from '../storage/migrations';
 
 interface HandLogState {
   hands: LoggedHand[];
@@ -9,7 +10,7 @@ interface HandLogState {
   /** Cached graded decisions per logged hand (for the leak finder). */
   analyses: Record<string, DecisionReview[]>;
   setAnalysis: (id: string, decisions: DecisionReview[]) => void;
-  lastSetup: { heroSeat: string; stackBb: number; bigBlind: number; location: 'home' | 'casino' };
+  lastSetup: { heroSeat: string; stackBb: number; bigBlind: number; location: 'home' | 'casino'; straddle?: boolean };
   addHand: (h: LoggedHand) => void;
   removeHand: (id: string) => void;
   saveSession: (s: RealSession) => void;
@@ -40,6 +41,12 @@ export const useHandLog = create<HandLogState>()(
       removeSession: (id) => set({ sessions: get().sessions.filter((x) => x.id !== id) }),
       setLastSetup: (lastSetup) => set({ lastSetup }),
     }),
-    { name: 'hand-log', storage: createJSONStorage(() => idbStateStorage) },
+    {
+      name: 'hand-log',
+      storage: createJSONStorage(() => idbStateStorage),
+      version: STORE_VERSIONS['hand-log'],
+      // Old hands (hero + one villain) become players[] hands; nothing is dropped.
+      migrate: (state, fromVersion) => migrateHandLogState(state, fromVersion) as HandLogState,
+    },
   ),
 );

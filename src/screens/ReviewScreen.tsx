@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { findLeaks, formatPercent, sessionProfit, sessionStats, type DecisionReview } from '../engine';
+import { findLeaks, formatPercent, sessionProfit, sessionStats, type DecisionReview, heroOf, migrateLoggedHand, opponentsOf } from '../engine';
 import { useHandLog } from '../state/handLogStore';
 import { usePlayLog } from '../state/playLogStore';
 import { toast } from '../state/toastStore';
@@ -102,7 +102,7 @@ export function ReviewScreen() {
                     ))}
                   </span>
                   <span className="text-right text-[11px] font-bold text-ink/70">
-                    {h.heroSeat} vs {h.villainSeat}
+                    {heroOf(migrateLoggedHand(h)).seat} vs {opponentsOf(migrateLoggedHand(h)).map((o) => o.seat).join(', ') || '—'}
                     <br />
                     {h.date.slice(5, 10)}
                   </span>

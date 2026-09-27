@@ -1,30 +1,52 @@
 import { useEffect, useState } from 'react';
-import { REGULAR_MODEL, type LoggedHand, type LoggedHandAnalysis, type VillainModel } from '../../engine';
+import { REGULAR_MODEL, heroOf, migrateLoggedHand, opponentsOf, profileModel, type AnalyzeLoggedOptions, type LoggedHand, type LoggedHandAnalysis, type PlayerStats, type Profile, type VillainModel } from '../../engine';
 import { CHART_LIBRARY } from '../../data/ranges';
 import { useChartStore } from '../../state/chartStore';
 import { useHandLog } from '../../state/handLogStore';
-import { useProfileModels } from '../../state/profileModels';
+import { useProfiles } from '../../state/profilesStore';
 import { analyzeLoggedInWorker } from '../../workers/engineClient';
 
 export function chartIdFor(h: LoggedHand): string {
   return h.stackBb <= 60 ? 'home-40bb' : 'cash-9max-100bb';
 }
 
-export function modelFor(h: LoggedHand, models: VillainModel[]): VillainModel {
-  return models.find((m) => m.id === h.villainProfileId) ?? REGULAR_MODEL;
+/** Models, preflop stats and names for each tagged opponent. */
+export function playerOptions(h: LoggedHand, profiles: Profile[]): AnalyzeLoggedOptions {
+  const models: Record<string, VillainModel> = {};
+  const stats: Record<string, PlayerStats> = {};
+  const names: Record<string, string> = {};
+  for (const p of opponentsOf(h)) {
+    const prof = profiles.find((x) => x.id === p.profileId);
+    if (prof) {
+      models[p.id] = profileModel(prof);
+      stats[p.id] = prof.stats;
+      names[p.id] = prof.name;
+    } else if (p.name) names[p.id] = p.name;
+  }
+  names[heroOf(h).id] = 'You';
+  return { models, stats, names };
+}
+
+/** Display name for a player of a logged hand. */
+export function playerName(h: LoggedHand, id: string, profiles: Profile[]): string {
+  const p = h.players.find((x) => x.id === id);
+  if (!p) return id;
+  if (p.hero) return 'You';
+  return profiles.find((x) => x.id === p.profileId)?.name ?? p.name ?? p.seat;
 }
 
 /** Analyse a logged hand in the worker and cache its graded decisions for the leak finder. */
-export function useLoggedAnalysis(hand: LoggedHand | undefined) {
+export function useLoggedAnalysis(raw: LoggedHand | undefined) {
   const overrides = useChartStore((s) => s.overrides);
-  const models = useProfileModels();
+  const profiles = useProfiles((s) => s.profiles);
   const setAnalysis = useHandLog((s) => s.setAnalysis);
   const [state, setState] = useState<{ loading: boolean; result: LoggedHandAnalysis | null; error: string | null }>({ loading: true, result: null, error: null });
   useEffect(() => {
-    if (!hand) return;
+    if (!raw) return;
+    const hand = migrateLoggedHand(raw);
     let live = true;
     setState({ loading: true, result: null, error: null });
-    analyzeLoggedInWorker(hand, CHART_LIBRARY, overrides, chartIdFor(hand), modelFor(hand, models))
+    analyzeLoggedInWorker(hand, CHART_LIBRARY, overrides, chartIdFor(hand), REGULAR_MODEL, playerOptions(hand, profiles))
       .then((result) => {
         if (!live) return;
         setState({ loading: false, result, error: result.error });
@@ -34,6 +56,6 @@ export function useLoggedAnalysis(hand: LoggedHand | undefined) {
     return () => {
       live = false;
     };
-  }, [hand?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [raw?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   return state;
 }

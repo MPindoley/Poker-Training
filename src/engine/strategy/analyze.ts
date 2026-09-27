@@ -140,9 +140,10 @@ export function analyzeSpot(spot: Spot, opts: AnalyzeOptions = {}): SpotAnalysis
     let noCall = 1;
     const callRanges: Range[] = [];
     const raiseRanges: { range: Range; p: number }[] = [];
-    for (const combos of sources) {
+    for (let vi = 0; vi < sources.length; vi++) {
+      const combos = sources[vi]!;
       const total = combos.reduce((t, c) => t + c.weight, 0);
-      const m = forStreet(spot.model, street);
+      const m = forStreet(spot.villains[vi]?.model ?? spot.model, street);
       const callR = allIn ? continuingRange(combos, price, m) : callingRange(combos, price, m);
       const raiseR = allIn ? null : raisingRange(combos, price, m);
       const pc = total > 0 ? totalOf(callR) / total : 0;
@@ -224,7 +225,7 @@ export function analyzeSpot(spot: Spot, opts: AnalyzeOptions = {}): SpotAnalysis
       const price = betFractionFacing(pot, raiseTo, stack);
       const combos = sources[0]!;
       const total = combos.reduce((t, c) => t + c.weight, 0);
-      const cont = continuingRange(combos, price, forStreet(spot.model, street));
+      const cont = continuingRange(combos, price, forStreet(spot.villains[0]!.model ?? spot.model, street));
       const pc = total > 0 ? totalOf(cont) / total : 0;
       const eqJ = pc > 0 ? equityVs(spot, [cont], ++eqSeed) : heroEquity;
       options.push({

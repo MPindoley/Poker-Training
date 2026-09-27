@@ -14,6 +14,7 @@ import {
   type ChartOverrides,
   type EquityOptions,
   type EquityResult,
+  type AnalyzeLoggedOptions,
   type LoggedHand,
   type LoggedHandAnalysis,
   type Spot,
@@ -44,6 +45,8 @@ export interface LoggedJob {
   overrides: Record<string, ChartOverrides>;
   chartId: string;
   model: VillainModel;
+  /** Per-player models / stats / names (tagged profiles). */
+  options?: AnalyzeLoggedOptions;
 }
 
 export interface PushJob {
@@ -78,7 +81,7 @@ export function handleEngineJob(job: EngineJob): EngineReply {
   if (job.kind === 'logged') {
     try {
       const chart = buildCharts(job.library, job.overrides)[job.chartId]!;
-      return { id: job.id, ok: true, result: analyzeLoggedHand(job.hand, chart, job.model) };
+      return { id: job.id, ok: true, result: analyzeLoggedHand(job.hand, chart, job.model, job.options) };
     } catch (e) {
       return { id: job.id, ok: false, error: e instanceof Error ? e.message : String(e) };
     }

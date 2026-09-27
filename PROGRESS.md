@@ -21,14 +21,14 @@ Baseline (before starting): 462 tests pass, typecheck clean, build OK.
 - [x] Learn: limpers lesson example + drill links; new "Squeezing" and "Straddles" lessons; glossary terms
 
 ## Phase 2: Logging hands with more than one opponent
-- [ ] Engine: N-player LoggedHand shape, actor = player id, straddle/limpers context
-- [ ] Versioned migration + old-record test + backup import of both shapes
-- [ ] replayAmounts for N players (blinds, straddle, turn order, investment, all-ins, side pots, estimates flagged)
-- [ ] Per-opponent range narrowing, multiway equity in worker, pot odds, verdicts
-- [ ] Shown cards: "At the time" vs "What they actually had"
-- [ ] Decision tags: opponent count, archetype/profile
-- [ ] Tests: 3/4-way pots, side pots, migration, multiway equity sanity
-- [ ] App: seat-picker table, profile quick-assign, legal next-actor entry, shown cards, street timeline
+- [x] Engine: N-player LoggedHand shape, actor = player id, straddle/limpers context
+- [x] Versioned migration + old-record test + backup import of both shapes
+- [x] replayAmounts for N players (blinds, straddle, turn order, investment, all-ins, side pots, estimates flagged)
+- [x] Per-opponent range narrowing, multiway equity in worker, pot odds, verdicts
+- [x] Shown cards: "At the time" vs "What they actually had"
+- [x] Decision tags: opponent count, archetype/profile
+- [x] Tests: 3/4-way pots, side pots, migration, multiway equity sanity
+- [x] App: seat-picker table, profile quick-assign, legal next-actor entry, shown cards, street timeline
 
 ## Phase 3: Live table tracker
 - [ ] Engine src/engine/live: LiveSession, events with undo, computeObservedStats, applySession + tests
@@ -80,6 +80,10 @@ Baseline (before starting): 462 tests pass, typecheck clean, build OK.
 
 - Loose-passive archetypes (station, EFLS, gambler) now open-limp part of their raising hands too (`OPEN_LIMP_SHARE` in game/bots.ts), so limper spots come up at the Play table.
 - Hand logger: a new optional `limpers` field on a logged hand counts limpers who weren't logged as players; preflop spots are classified by the shared `classifyPreflopDecision` (preflop/line.ts), which Phase 2 reuses for N players.
+
+- Logged hands v2: `players[]` (hero flagged, optional profile, name, own stack, shown cards) and `actor` = player id. v1 hands migrate with ids 'hero' / 'villain' (store `version: 2` + `migrate`, and backup import runs the same migration via `storage/migrations.ts`).
+- Multi-way hand analysis: each opponent's preflop range comes from their own actions (charts, or VPIP/PFR ranges for tagged profiles), narrowed postflop with their own model; hero is graded against everyone still in (the analyser takes a model per villain). Side pots only show once someone is all-in.
+- The logger only needs the players who were involved; players who folded without investing can be skipped. "Other limpers" adds unlogged limpers to the preflop context.
 
 ## Open questions for Matt
 - Home-game limper / squeeze / 4-bet ranges (src/data/ranges/home-40bb.json) are my best judgment for a loose-passive 40bb game. Please sanity-check especially: iso ranges vs 1 limper from the button (44+, A7s+, …) and the value-only squeeze ranges.

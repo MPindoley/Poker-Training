@@ -222,6 +222,10 @@ export interface DecisionTags {
   bestFraction?: number | null;
   actionType: string;
   preflopKind?: AdviceKind;
+  /** Opponents still in the hand at this decision, and their archetypes / tagged profiles. */
+  opponents?: number;
+  opponentArchetypes?: string[];
+  opponentProfiles?: string[];
   /** Limpers or callers in front of hero (preflop). */
   preflopCount?: number;
   /** Hero's iso-raise size and the size the chart recommends (bb), for the leak finder. */

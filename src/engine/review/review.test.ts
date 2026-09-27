@@ -3,14 +3,15 @@ import six from '../../data/ranges/cash-6max-100bb.json';
 import { buildCharts, type ChartJson } from '../preflop/charts';
 import { REGULAR_MODEL } from '../strategy/villainModel';
 import { archetypeModel } from '../exploit/profiles';
-import { analyzeLoggedHand, replayAmounts, type LoggedHand } from './handLog';
+import { analyzeLoggedHand, migrateLoggedHand, replayAmounts, type LoggedHand, type LoggedHandV1 } from './handLog';
 import { sessionProfit, sessionStats, type RealSession } from './sessions';
 import { findLeaks } from './leaks';
 import type { DecisionReview } from '../game/coach';
 
 const chart = buildCharts({ [six.id]: six as unknown as ChartJson })[six.id]!;
 
-const hand = (over: Partial<LoggedHand> = {}): LoggedHand => ({
+/** Old-format (v1) hands, migrated: every existing test also exercises the migration. */
+const hand = (over: Partial<LoggedHandV1> = {}): LoggedHand => migrateLoggedHand({
   id: 'h1',
   date: '2026-09-27',
   heroCards: ['Ah', 'Kd'],
@@ -33,7 +34,7 @@ const hand = (over: Partial<LoggedHand> = {}): LoggedHand => ({
     { street: 'river', actor: 'hero', type: 'call', amount: null },
   ],
   ...over,
-});
+} as LoggedHandV1);
 
 describe('logged hand amounts', () => {
   it('fills calls and estimates forgotten bets (2/3 pot), and tracks the pot', () => {
