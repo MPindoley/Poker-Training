@@ -100,6 +100,18 @@ export function ProfileScreen() {
 
       <Panel tone="night" title="Skill radar">
         <SkillRadar radar={radar} />
+        <div className="mt-2 grid grid-cols-3 gap-1.5 text-center">
+          {[
+            ['Live hands tracked', String(snapshot.liveHands ?? 0), '/review/live'],
+            ['Lab guesses on target', String(snapshot.labGoodGuesses ?? 0), '/train/lab?guess=1'],
+            ['Limper spots right', String(snapshot.kinds['preflop.limpers']?.correct ?? 0), '/train/preflop/play?kind=preflop.limpers&d=bronze'],
+          ].map(([k, v, to]) => (
+            <button key={k} type="button" onClick={() => navigate(to!)} className="min-h-11 rounded-xl border-2 border-ink bg-ink/40 px-1 py-1">
+              <div className="font-display text-lg text-gold-300">{v}</div>
+              <div className="text-[10px] font-bold leading-tight text-cream/85">{k}</div>
+            </button>
+          ))}
+        </div>
       </Panel>
 
       <Panel tone="cream" title={`Achievements ${unlockedCount}/${ACHIEVEMENTS.length}`}>

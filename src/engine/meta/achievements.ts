@@ -1,5 +1,6 @@
 /** Achievements: pure checks over a snapshot of the player's saved progress. */
 import { SKILL_AREAS, skillRadar, type AttemptTally } from './skills';
+import { EQUITY_GUESS_BEST } from '../lab/lab';
 
 export interface AchievementSnapshot {
   level: number;
@@ -22,7 +23,15 @@ export interface AchievementSnapshot {
   loggedHands: number;
   cosmeticsOwned: number;
   dailyTasksDone: number;
+  /** Hands tracked at the live table tracker (optional: older callers omit it). */
+  liveHands?: number;
+  /** Range Lab guesses within EQUITY_GUESS_BEST of the real equity. */
+  labGoodGuesses?: number;
 }
+
+export const ISO_KING_CORRECT = 50;
+export const SCOUT_HANDS = 100;
+export const EQUITY_EYE_GUESSES = 20;
 
 export interface Achievement {
   id: string;
@@ -84,6 +93,21 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
   { id: 'table-100', name: 'Seat Warmer', description: 'Play 100 hands at the Play table', chest: false, progress: (s) => ratio(s.tableHands, 100) },
   { id: 'logger-10', name: 'Honest Notebook', description: 'Log 10 real hands in Review', chest: false, progress: (s) => ratio(s.loggedHands, 10) },
   { id: 'collector', name: 'Collector', description: 'Own 12 cosmetics', chest: false, progress: (s) => ratio(s.cosmeticsOwned, 12) },
+  {
+    id: 'iso-king',
+    name: 'Iso King',
+    description: `${ISO_KING_CORRECT} correct limper spots`,
+    chest: true,
+    progress: (s) => ratio(s.kinds['preflop.limpers']?.correct ?? 0, ISO_KING_CORRECT),
+  },
+  { id: 'scout', name: 'Scout', description: `Track ${SCOUT_HANDS} hands live`, chest: true, progress: (s) => ratio(s.liveHands ?? 0, SCOUT_HANDS) },
+  {
+    id: 'equity-eye',
+    name: 'Equity Eye',
+    description: `${EQUITY_EYE_GUESSES} Range Lab guesses within ${Math.round(EQUITY_GUESS_BEST * 100)} points`,
+    chest: true,
+    progress: (s) => ratio(s.labGoodGuesses ?? 0, EQUITY_EYE_GUESSES),
+  },
   {
     id: 'all-rounder',
     name: 'All-Rounder',

@@ -3,14 +3,15 @@ import six from '../../data/ranges/cash-6max-100bb.json';
 import { buildCharts, type ChartJson } from '../preflop/charts';
 import { REGULAR_MODEL } from '../strategy/villainModel';
 import { archetypeModel } from '../exploit/profiles';
-import { analyzeLoggedHand, replayAmounts, type LoggedHand } from './handLog';
+import { analyzeLoggedHand, migrateLoggedHand, replayAmounts, type LoggedHand, type LoggedHandV1 } from './handLog';
 import { sessionProfit, sessionStats, type RealSession } from './sessions';
 import { findLeaks } from './leaks';
 import type { DecisionReview } from '../game/coach';
 
 const chart = buildCharts({ [six.id]: six as unknown as ChartJson })[six.id]!;
 
-const hand = (over: Partial<LoggedHand> = {}): LoggedHand => ({
+/** Old-format (v1) hands, migrated: every existing test also exercises the migration. */
+const hand = (over: Partial<LoggedHandV1> = {}): LoggedHand => migrateLoggedHand({
   id: 'h1',
   date: '2026-09-27',
   heroCards: ['Ah', 'Kd'],
@@ -33,7 +34,7 @@ const hand = (over: Partial<LoggedHand> = {}): LoggedHand => ({
     { street: 'river', actor: 'hero', type: 'call', amount: null },
   ],
   ...over,
-});
+} as LoggedHandV1);
 
 describe('logged hand amounts', () => {
   it('fills calls and estimates forgotten bets (2/3 pot), and tracks the pot', () => {
@@ -114,5 +115,61 @@ describe('leak finder', () => {
     expect(turn.opportunities).toBe(3);
     expect(turn.cost).toBe(5);
     expect(leaks.find((l) => l.rule.id === 'blind-calls')!.uncosted).toBe(1);
+  });
+
+  it('mistakes in close or read-dependent spots weigh half', () => {
+    const leaks = findLeaks([
+      d({ street: 'river', tags: { facingBet: true, actionType: 'call' }, evLost: 4, confidence: 'close' }),
+      d({ street: 'river', tags: { facingBet: true, actionType: 'call' }, evLost: 4, confidence: 'model-dependent' }),
+      d({ evLost: 3, confidence: 'clear' }),
+    ]);
+    const river = leaks.find((l) => l.rule.id === 'river-calls')!;
+    expect(river.cost).toBe(8);
+    expect(river.weightedCost).toBe(4);
+    expect(river.severity).toBe(1);
+    // Weighted: river 4bb (8bb raw) still ranks above the clear 3bb turn fold.
+    expect(leaks.map((l) => l.rule.id)).toEqual(['river-calls', 'turn-folds']);
+    expect(leaks.find((l) => l.rule.id === 'turn-folds')!.weightedCost).toBe(3);
+  });
+});
+
+describe('home-game preflop in logged hands and leaks', () => {
+  const home = buildCharts({ [six.id]: six as unknown as ChartJson })[six.id]!;
+  it('a raise behind limpers is graded as an iso-raise, not an open', () => {
+    const h = hand({
+      heroCards: ['As', 'Ad'],
+      heroSeat: 'CO',
+      villainSeat: 'HJ',
+      actions: [
+        { street: 'preflop', actor: 'villain', type: 'call', amount: null },
+        { street: 'preflop', actor: 'hero', type: 'raise', amount: 3 },
+        { street: 'preflop', actor: 'villain', type: 'call', amount: null },
+      ],
+    });
+    const a = analyzeLoggedHand(h, home, REGULAR_MODEL);
+    const pre = a.decisions.find((x) => x.street === 'preflop')!;
+    expect(pre.review.tags!.preflopKind).toBe('vsLimpers');
+    expect(pre.review.grade).toBe('best');
+    expect(pre.review.tags!.isoSize).toEqual({ chosen: 3, recommended: 4 });
+  });
+  it('limper context counts unlogged limpers; overlimping AA is a mistake', () => {
+    const h = hand({ heroCards: ['As', 'Ad'], heroSeat: 'BTN', villainSeat: 'BB', limpers: 2, actions: [{ street: 'preflop', actor: 'hero', type: 'call', amount: null }, { street: 'preflop', actor: 'villain', type: 'check', amount: null }] });
+    const pre = analyzeLoggedHand(h, home, REGULAR_MODEL).decisions[0]!;
+    expect(pre.review.tags!.preflopKind).toBe('vsLimpers');
+    expect(pre.review.tags!.preflopCount).toBe(2);
+    expect(pre.review.grade).toBe('mistake');
+  });
+  it('new leak rules: overlimping iso hands, small iso-raises, limp-calling', () => {
+    const base = { street: 'preflop' as const, action: '', evLost: null, equity: null, note: '' };
+    const leaks = findLeaks([
+      { ...base, grade: 'mistake', best: 'Raise', tags: { facingBet: false, actionType: 'call', preflopKind: 'vsLimpers' } },
+      { ...base, grade: 'best', best: 'Raise', tags: { facingBet: false, actionType: 'raise', preflopKind: 'vsLimpers', isoSize: { chosen: 3, recommended: 5 } } },
+      { ...base, grade: 'best', best: 'Raise', tags: { facingBet: false, actionType: 'raise', preflopKind: 'vsLimpers', isoSize: { chosen: 5, recommended: 5 } } },
+      { ...base, grade: 'mistake', best: 'Fold', tags: { facingBet: true, actionType: 'call', preflopKind: 'vsLimpRaise' } },
+    ]);
+    const ids = leaks.map((l) => l.rule.id);
+    expect(ids).toEqual(expect.arrayContaining(['overlimp-iso', 'iso-small', 'limp-call']));
+    expect(leaks.find((l) => l.rule.id === 'iso-small')!.count).toBe(1);
+    expect(leaks.find((l) => l.rule.id === 'iso-small')!.opportunities).toBe(2);
   });
 });

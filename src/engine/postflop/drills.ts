@@ -9,7 +9,7 @@ import { formatPercent } from '../math';
 import type { Chart } from '../preflop/charts';
 import { classComboIndices, COMBOS, type Range } from '../range';
 import type { Rng } from '../rng';
-import { analyzeSpot, bb, signedBb, type SpotAnalysis } from '../strategy/analyze';
+import { analyzeSpot, bb, signedBb, type AnalyzeOptions, type SpotAnalysis } from '../strategy/analyze';
 import { RULES } from '../strategy/rules';
 import type { VillainModel } from '../strategy/villainModel';
 import { finalizeChoices, percentChoices, type Candidate } from '../drills/choices';
@@ -21,6 +21,7 @@ import { POT_TYPE_NAMES, THEME_NAMES, generateSpot, type PotType, type Spot, typ
 import { describeCardChanges } from './turnCard';
 import { calculateEquity } from '../equity';
 import { potOdds } from '../odds';
+import { applySolverGrades, type PostflopSolverDb } from './solverImport';
 
 export const THEMES: readonly Theme[] = ['cbet', 'value', 'bluff', 'facing', 'reading', 'short', 'checkraise', 'turn', 'river', 'multiway'];
 export const STREETS: readonly Street[] = ['flop', 'turn', 'river'];
@@ -37,6 +38,15 @@ export interface PostflopContext {
   shortChart: Chart;
   model: VillainModel;
   filters: PostflopFilters;
+  /** Imported postflop solver data: matching flop spots are graded from its frequencies. */
+  solver?: PostflopSolverDb;
+}
+
+/** Analyse a drill spot with a confidence label, then let imported solver data take over if it matches. */
+function analyzeDrill(ctx: PostflopContext, spot: Spot, opts: AnalyzeOptions): SpotAnalysis {
+  const a = analyzeSpot(spot, { ...opts, confidence: true });
+  applySolverGrades(a, spot, ctx.solver);
+  return a;
 }
 
 const THEME_SIZES: Record<Theme, number[]> = {
@@ -111,6 +121,9 @@ function optionQuestion(spot: Spot, a: SpotAnalysis, difficulty: Difficulty, id:
     context: baseContext(spot, a),
     choices: a.options.map((o, i) => ({ id: `o${i}`, label: o.label, grade: o.grade, note: `EV ≈ ${signedBb(o.ev)}` })),
     explanation: { summary: a.summary, steps: a.steps },
+    confidence: a.confidence,
+    confidenceNote: a.confidenceNote,
+    source: a.source,
     visual: rangeVisual(spot.villains[0]!.range, `Villain's estimated range now (${POT_TYPE_NAMES[spot.potType]})`, heroLabel(spot)),
   };
 }
@@ -152,7 +165,7 @@ function themeQuestion(ctx: PostflopContext, rng: Rng, difficulty: Difficulty, v
     potType,
     extra === 'tp-turn' ? { heroBuckets: ['strong', 'medium'], facingSize: [0.75, 1.25] } : undefined,
   );
-  const a = analyzeSpot(spot, { sizes: THEME_SIZES[theme], gradeBy: theme === 'cbet' ? 'cbet' : 'ev', seed: Math.floor(rng() * 1e9) });
+  const a = analyzeDrill(ctx, spot, { sizes: THEME_SIZES[theme], gradeBy: theme === 'cbet' ? 'cbet' : 'ev', seed: Math.floor(rng() * 1e9) });
   const q = optionQuestion(spot, a, difficulty, id, `postflop.${variant}`);
   if (extra === 'tp-turn') q.prompt = 'Top pair facing a big turn bet. Fold, call or raise?';
   return q;
@@ -321,19 +334,19 @@ function deepQuestion(
 
   if (theme === 'checkraise' && extra === 'face') {
     spot = spotFor(ctx, rng, theme, s, potType, { heroRole: 'aggressor', heroIP: true, action: 'facingRaise' });
-    a = analyzeSpot(spot, { seed });
+    a = analyzeDrill(ctx, spot, { seed });
     const mix = rangeMix(spot, spot.villains[0]!.range);
     notes.push(`Check-raise range: ${pctText(mix.value)} strong value (top pair good kicker+), ${pctText(mix.draws)} semi-bluffs (draws), ${pctText(mix.bluffs)} pure bluffs, ${pctText(mix.bluffCatchers)} other.`);
     notes.push('Check-raises are weighted to value: you need a strong hand or a strong draw to continue, not just a pair that was good when you bet.');
   } else if (theme === 'checkraise') {
     spot = spotFor(ctx, rng, theme, s, potType, { heroRole: 'caller', heroIP: false, action: 'facing', facingSize: [0.33, 0.75] });
-    a = analyzeSpot(spot, { seed, raiseSizes: [3, 4.5] });
+    a = analyzeDrill(ctx, spot, { seed, raiseSizes: [3, 4.5] });
     const mix = rangeMix(spot, spot.villains[0]!.range);
     notes.push(`Villain's c-bet range: ${pctText(mix.value)} strong value, ${pctText(mix.draws)} draws, ${pctText(mix.bluffs + mix.bluffCatchers)} weaker hands and air.`);
     notes.push('A check-raise wins two ways: villain folds its weak c-bets now, or you get called with a hand that has equity (strong value or a good draw).');
   } else if (theme === 'turn') {
     spot = spotFor(ctx, rng, theme, 'turn', potType, { heroRole: 'aggressor', line: 'barrel', action: 'first' });
-    a = analyzeSpot(spot, { sizes: THEME_SIZES.turn, seed });
+    a = analyzeDrill(ctx, spot, { sizes: THEME_SIZES.turn, seed });
     const flop = spot.board.slice(0, 3);
     const before = rangeEquityOn(spot, flop, seed + 1);
     const after = rangeEquityOn(spot, spot.board, seed + 1);
@@ -343,7 +356,7 @@ function deepQuestion(
     prompt = 'Your flop bet was called. Turn: barrel or check — and how much?';
   } else if (theme === 'river' && extra === 'bluffcatch') {
     spot = spotFor(ctx, rng, theme, 'river', potType, { action: 'facing', heroBuckets: ['medium', 'weak'], facingSize: [0.5, 1.25] });
-    a = analyzeSpot(spot, { seed });
+    a = analyzeDrill(ctx, spot, { seed });
     const mix = rangeMix(spot, spot.villains[0]!.range);
     const need = potOdds(spot.pot + spot.facingBet!, spot.facingBet!).requiredEquity;
     notes.push(`Villain's river betting range: ${pctText(mix.value)} value, ${pctText(mix.bluffs)} bluffs (missed draws and air), ${pctText(mix.bluffCatchers)} thin value.`);
@@ -351,7 +364,7 @@ function deepQuestion(
     prompt = 'River bet. Is your hand a good enough bluff-catcher?';
   } else if (theme === 'river') {
     spot = spotFor(ctx, rng, theme, 'river', potType, { action: 'first', heroBuckets: ['monster', 'strong', 'air'] });
-    a = analyzeSpot(spot, { sizes: THEME_SIZES.river, seed });
+    a = analyzeDrill(ctx, spot, { sizes: THEME_SIZES.river, seed });
     const over = a.options.filter((o) => o.action === 'bet' && o.fraction !== null && o.fraction > 1.01);
     if (over.length) {
       const top = over.reduce((x, y) => (y.ev > x.ev ? y : x));
@@ -361,14 +374,14 @@ function deepQuestion(
     prompt = 'River: check or bet — and would an overbet work?';
   } else if (extra === 'facing') {
     spot = spotFor(ctx, rng, theme, s, 'multiway', { action: 'facing', facingSize: [0.33, 0.8] });
-    a = analyzeSpot(spot, { seed });
+    a = analyzeDrill(ctx, spot, { seed });
     const callers = spot.callersBefore ?? [];
     notes.push(`${callers.length} player${callers.length > 1 ? 's' : ''} already called: the pot is bigger, so the price improves, but you need to beat ${spot.villains.length} ranges — the bettor's and ${callers.length > 1 ? 'the callers’' : 'the caller’s'} (callers keep their medium and strong hands).`);
     notes.push(`Your equity against everyone together: ${formatPercent(a.heroEquity)}. With more players in, draws to the nuts gain and one-pair hands lose value.`);
     prompt = `${spot.villains[0]!.seat} bets and ${callers.join(' and ')} call${callers.length > 1 ? '' : 's'}. Fold, call or raise?`;
   } else {
     spot = spotFor(ctx, rng, theme, s, 'multiway', { heroRole: 'aggressor', action: 'first' });
-    a = analyzeSpot(spot, { sizes: THEME_SIZES.multiway, seed });
+    a = analyzeDrill(ctx, spot, { sizes: THEME_SIZES.multiway, seed });
     const half = a.options.find((o) => o.action === 'bet' && o.fraction !== null && Math.abs(o.fraction - 0.5) < 0.1) ?? a.options.find((o) => o.action === 'bet')!;
     const each = spot.villains.map((v) => {
       const combos = classifyRange(v.range, spot.board, spot.hero);

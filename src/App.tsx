@@ -13,6 +13,8 @@ import { ReviewScreen } from './screens/ReviewScreen';
 import { LearnScreen } from './screens/LearnScreen';
 import { StyleguideScreen } from './screens/StyleguideScreen';
 import { DebugEquityScreen } from './screens/DebugEquityScreen';
+import { RangeLabScreen } from './screens/train/RangeLabScreen';
+import { PostflopSolverImportScreen } from './screens/train/PostflopSolverImportScreen';
 import { MathTrainerScreen } from './screens/train/MathTrainerScreen';
 import { MathDrillScreen } from './screens/train/MathDrillScreen';
 import { CheatSheetScreen } from './screens/train/CheatSheetScreen';
@@ -32,13 +34,15 @@ import { SessionSummaryScreen } from './screens/play/SessionSummaryScreen';
 import { HandLoggerScreen } from './screens/review/HandLoggerScreen';
 import { LoggedHandScreen } from './screens/review/LoggedHandScreen';
 import { SessionEditorScreen } from './screens/review/SessionEditorScreen';
+import { LiveSessionScreen } from './screens/review/LiveSessionScreen';
+import { PlayerCardsScreen } from './screens/exploit/PlayerCardsScreen';
 import { LessonScreen } from './screens/learn/LessonScreen';
 import { GlossaryScreen } from './screens/learn/GlossaryScreen';
 import { SessionDrillScreen } from './screens/session/SessionDrillScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 
 /** Full-screen routes (drills, the table) hide the tab bar so nothing covers the controls. */
-const IMMERSIVE = [/^\/train\/[^/]+\/play/, /^\/train\/session/, /^\/play\/table/];
+const IMMERSIVE = [/^\/train\/[^/]+\/play/, /^\/train\/session/, /^\/play\/table/, /^\/review\/live/];
 
 export default function App() {
   const location = useLocation();
@@ -73,17 +77,21 @@ export default function App() {
                   <Route path="/train/preflop/paint" element={<PaintRangeScreen />} />
                   <Route path="/train/preflop/editor" element={<RangeEditorScreen />} />
                   <Route path="/train/preflop/import" element={<SolverImportScreen />} />
+                  <Route path="/train/postflop/import" element={<PostflopSolverImportScreen />} />
                   <Route path="/train/postflop" element={<PostflopTrainerScreen />} />
                   <Route path="/train/postflop/play" element={<PostflopDrillScreen />} />
                   <Route path="/train/postflop/replay" element={<ReplaySpotScreen />} />
                   <Route path="/train/exploit" element={<ExploitLabScreen />} />
                   <Route path="/train/exploit/profile/:id" element={<ProfileEditorScreen />} />
                   <Route path="/train/exploit/play" element={<ExploitDrillScreen />} />
+                  <Route path="/train/exploit/cards" element={<PlayerCardsScreen />} />
+                  <Route path="/train/lab" element={<RangeLabScreen />} />
                   <Route path="/play" element={<PlayScreen />} />
                   <Route path="/play/table" element={<TableScreen />} />
                   <Route path="/play/summary" element={<SessionSummaryScreen />} />
                   <Route path="/review" element={<ReviewScreen />} />
                   <Route path="/review/log" element={<HandLoggerScreen />} />
+                  <Route path="/review/live" element={<LiveSessionScreen />} />
                   <Route path="/review/hand/:id" element={<LoggedHandScreen />} />
                   <Route path="/review/session/new" element={<SessionEditorScreen />} />
                   <Route path="/review/session/:id" element={<SessionEditorScreen />} />

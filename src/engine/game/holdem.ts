@@ -31,7 +31,7 @@ export interface TableSeat {
 export interface ActionEvent {
   seat: number;
   street: GameStreet;
-  type: ActionType | 'post-sb' | 'post-bb';
+  type: ActionType | 'post-sb' | 'post-bb' | 'post-straddle';
   /** Chips added by this action. */
   amount: number;
   /** Street bet level after this action. */
@@ -66,6 +66,8 @@ export interface HandState {
   button: number;
   sbSeat: number;
   bbSeat: number;
+  /** Seat that posted a straddle (-1 when none). */
+  straddleSeat: number;
   sb: number;
   bb: number;
   street: GameStreet;
@@ -120,7 +122,11 @@ function put(seat: TableSeat, amount: number): number {
 }
 
 /** Deal a new hand. `button` is the dealer seat index (must be a seat that is not out). */
-export function startHand(configs: SeatConfig[], button: number, blinds: { sb: number; bb: number }, rng: Rng, handNo = 1): HandState {
+/**
+ * Start a hand. `blinds.straddle` (e.g. 2 = 2bb) makes the player after the big blind post a live
+ * straddle: they act last preflop with an option, like the big blind (needs 3+ players).
+ */
+export function startHand(configs: SeatConfig[], button: number, blinds: { sb: number; bb: number; straddle?: number }, rng: Rng, handNo = 1): HandState {
   const deck = Array.from({ length: 52 }, (_, i) => i);
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
@@ -149,6 +155,7 @@ export function startHand(configs: SeatConfig[], button: number, blinds: { sb: n
     button,
     sbSeat: -1,
     bbSeat: -1,
+    straddleSeat: -1,
     sb: blinds.sb,
     bb: blinds.bb,
     street: 'preflop',
@@ -177,6 +184,17 @@ export function startHand(configs: SeatConfig[], button: number, blinds: { sb: n
     s.log.push({ seat, street: 'preflop', type, amount: a, to: s.seats[seat]!.bet, potBefore, allIn: s.seats[seat]!.allIn });
   }
   s.currentBet = Math.max(s.seats[sbSeat]!.bet, s.seats[bbSeat]!.bet);
+  let lastBlind = bbSeat;
+  if (blinds.straddle && active.length >= 3) {
+    const st = nextSeat(s, bbSeat, inPlay)!;
+    const potBefore = potSize(s);
+    const a = put(s.seats[st]!, blinds.straddle);
+    s.log.push({ seat: st, street: 'preflop', type: 'post-straddle', amount: a, to: s.seats[st]!.bet, potBefore, allIn: s.seats[st]!.allIn });
+    s.straddleSeat = st;
+    s.currentBet = Math.max(s.currentBet, s.seats[st]!.bet);
+    s.lastRaiseSize = blinds.straddle;
+    lastBlind = st;
+  }
   // Deal two cards to each player, one at a time, starting left of the button.
   for (let round = 0; round < 2; round++) {
     let i = sbSeat;
@@ -185,7 +203,7 @@ export function startHand(configs: SeatConfig[], button: number, blinds: { sb: n
       i = nextSeat(s, i, inPlay)!;
     }
   }
-  s.toAct = nextSeat(s, bbSeat, canAct);
+  s.toAct = nextSeat(s, lastBlind, canAct);
   // Everyone all-in from the blinds already: straight to the run-out.
   return settleIfDone(s);
 }

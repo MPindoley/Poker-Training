@@ -2,7 +2,7 @@
  * A queue-based client for background analysis (coach, hand review). Unlike runEquity, jobs don't
  * cancel each other; they run in order on a dedicated worker.
  */
-import type { ShoveResult, AnalyzeOptions, ChartJson, ChartOverrides, LoggedHand, LoggedHandAnalysis, Spot, SpotAnalysis, VillainModel } from '../engine';
+import type { LabResult, LabScenario, NextCardGrid, AnalyzeLoggedOptions, ShoveResult, AnalyzeOptions, ChartJson, ChartOverrides, LoggedHand, LoggedHandAnalysis, Spot, SpotAnalysis, VillainModel } from '../engine';
 import { handleEngineJob, type EngineJob, type EngineReply } from './equityProtocol';
 
 let worker: Worker | null = null;
@@ -47,8 +47,9 @@ export function analyzeLoggedInWorker(
   overrides: Record<string, ChartOverrides>,
   chartId: string,
   model: VillainModel,
+  options?: AnalyzeLoggedOptions,
 ): Promise<LoggedHandAnalysis> {
-  return run<LoggedHandAnalysis>({ id: nextId++, kind: 'logged', hand, library, overrides, chartId, model });
+  return run<LoggedHandAnalysis>({ id: nextId++, kind: 'logged', hand, library, overrides, chartId, model, options });
 }
 
 export function analyzeInWorker(spot: Spot, options?: AnalyzeOptions): Promise<SpotAnalysis> {
@@ -68,4 +69,14 @@ export function analyzeInWorker(spot: Spot, options?: AnalyzeOptions): Promise<S
 
 export function pushChartInWorker(stack: number, callFraction: number): Promise<Record<string, ShoveResult>> {
   return run<Record<string, ShoveResult>>({ id: nextId++, kind: 'push', stack, callFraction });
+}
+
+/** Range Lab analysis (equity, buckets, what beats you, blockers, advantage). */
+export function runLabInWorker(scenario: LabScenario): Promise<LabResult> {
+  return run<LabResult>({ id: nextId++, kind: 'lab', scenario });
+}
+
+/** Player 1's equity after each possible next card. */
+export function nextCardGridInWorker(scenario: LabScenario): Promise<NextCardGrid> {
+  return run<NextCardGrid>({ id: nextId++, kind: 'labGrid', scenario });
 }

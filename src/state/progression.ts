@@ -1,10 +1,13 @@
 /** Hooks that combine the saved stores into the snapshots the progression engine needs. */
 import { useEffect, useMemo, useState } from 'react';
-import { levelFromXp, skillRadar, type AchievementSnapshot, type AreaScore, type SkillArea } from '../engine';
+import { EQUITY_GUESS_BEST, levelFromXp, skillRadar, type AchievementSnapshot, type AreaScore, type SkillArea } from '../engine';
 import { ALL_LESSONS } from '../content/learn';
 import { useChartStore, useCharts } from './chartStore';
 import { useProfiles } from './profilesStore';
 import { useSettings } from './settingsStore';
+import { useLive } from './liveStore';
+import { useLab } from './labStore';
+import { usePostflopSolver } from './postflopSolverStore';
 import { useDrillStats } from './drillStatsStore';
 import { useHandLog } from './handLogStore';
 import { useLearn } from './learnStore';
@@ -22,7 +25,7 @@ export function useProgressHydrated(): boolean {
   return useHydrated(PERSISTED);
 }
 
-const APP_STORES: Persisted[] = [...PERSISTED, useSettings, useChartStore, useProfiles];
+const APP_STORES: Persisted[] = [...PERSISTED, useSettings, useChartStore, useProfiles, useLive, useLab, usePostflopSolver];
 /** True once every saved store has loaded (the app shows a splash until then). */
 export function useAppHydrated(): boolean {
   return useHydrated(APP_STORES);
@@ -61,6 +64,9 @@ export function useAchievementSnapshot(): AchievementSnapshot {
   const sessions = usePlayLog((s) => s.sessions);
   const hands = useHandLog((s) => s.hands);
   const charts = useCharts();
+  const live = useLive((s) => s.active);
+  const liveHistory = useLive((s) => s.history);
+  const guesses = useLab((s) => s.guesses);
   return useMemo(() => {
     const level = levelFromXp(xp).level;
     return {
@@ -78,6 +84,9 @@ export function useAchievementSnapshot(): AchievementSnapshot {
       loggedHands: hands.length,
       cosmeticsOwned: ownedSet(rewards.owned, level).size,
       dailyTasksDone: rewards.dailyTasksDone,
+      // A live session starts on hand 1; each "next hand" tap moves it on, so handNo − 1 hands are done.
+      liveHands: [...liveHistory, ...(live && !liveHistory.some((h) => h.id === live.id) ? [live] : [])].reduce((n, s) => n + Math.max(0, s.handNo - 1), 0),
+      labGoodGuesses: guesses.filter((g) => Math.abs(g.guess - g.actual) <= EQUITY_GUESS_BEST).length,
     };
-  }, [xp, streak, bestStreak, kinds, bestRuns, rewards, lessons, sessions, hands, charts]);
+  }, [xp, streak, bestStreak, kinds, bestRuns, rewards, lessons, sessions, hands, charts, live, liveHistory, guesses]);
 }

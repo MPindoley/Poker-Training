@@ -6,6 +6,7 @@ import { makePreflopDrills } from '../preflop/drills';
 import { MATH_DRILLS } from '../drills/math';
 import { THEME_NAMES } from '../postflop/scenario';
 import { makeExploitDrills } from '../exploit/drills';
+import { makeEquityDrills } from '../lab/drills';
 import { createRng } from '../rng';
 import {
   ACHIEVEMENTS,
@@ -67,6 +68,8 @@ describe('skills', () => {
     for (const d of makePreflopDrills({ chart: charts['cash-6max-100bb']!, skills: {} })) titles.set(d.kind, d.title);
     for (const d of makeExploitDrills({ chart: charts['cash-6max-100bb']! })) titles.set(d.kind, d.title);
     for (const [t, name] of Object.entries(THEME_NAMES)) titles.set(`postflop.${t}`, name);
+    for (const d of makeEquityDrills(charts['home-40bb']!)) titles.set(d.kind, d.title);
+    titles.set('lab.guess', 'Range Lab guesses'); // recorded by the Range Lab screen, not a drill
     for (const k of TRAINABLE_KINDS) expect(titles.get(k.kind), k.kind).toBe(k.title);
   });
   it('shrinks accuracy toward 50%', () => {
@@ -219,6 +222,14 @@ describe('achievements', () => {
     expect(u).toEqual(expect.arrayContaining(['streak-3', 'streak-7', 'level-10', 'scholar']));
     expect(u).not.toContain('streak-30');
   });
+  it('Iso King, Scout and Equity Eye', () => {
+    expect(unlockedAchievements({ ...empty, kinds: { 'preflop.limpers': { attempts: 80, correct: 49 } } })).not.toContain('iso-king');
+    expect(unlockedAchievements({ ...empty, kinds: { 'preflop.limpers': { attempts: 80, correct: 50 } } })).toContain('iso-king');
+    expect(unlockedAchievements({ ...empty, liveHands: 99 })).not.toContain('scout');
+    expect(unlockedAchievements({ ...empty, liveHands: 100 })).toContain('scout');
+    expect(unlockedAchievements({ ...empty, labGoodGuesses: 20 })).toContain('equity-eye');
+    expect(unlockedAchievements({ ...empty, labGoodGuesses: 19 })).not.toContain('equity-eye');
+  });
 });
 
 describe('resolveLoadout', () => {
@@ -231,5 +242,13 @@ describe('resolveLoadout', () => {
     expect(resolveLoadout({ cardBack: 'back.ember' }, 1, owned).cardBack.id).toBe('back.classic');
     owned.add('back.ember');
     expect(resolveLoadout({ cardBack: 'back.ember' }, 1, owned).cardBack.id).toBe('back.ember');
+  });
+});
+
+describe('home-game warm-up weights limper spots', () => {
+  it('limper spots are at least half of the home preflop kinds, and appear in casino too', () => {
+    const k = VENUE_KINDS.home.preflop;
+    expect(k.filter((x) => x === 'preflop.limpers').length / k.length).toBeGreaterThanOrEqual(0.5);
+    expect(VENUE_KINDS.casino.preflop).toContain('preflop.limpers');
   });
 });

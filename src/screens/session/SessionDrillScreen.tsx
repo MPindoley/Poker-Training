@@ -8,6 +8,7 @@ import {
   VENUE_NAMES,
   buildQuestion,
   makeExploitDrills,
+  makeEquityDrills,
   makePostflopDrills,
   makePreflopDrills,
   planLength,
@@ -19,6 +20,7 @@ import {
   type SessionPlan,
   type Venue,
 } from '../../engine';
+import { usePostflopSolverDb } from '../../state/postflopSolverStore';
 import { useCharts } from '../../state/chartStore';
 import { useDrillStats } from '../../state/drillStatsStore';
 import { useSettings } from '../../state/settingsStore';
@@ -42,6 +44,7 @@ export function SessionDrillScreen() {
   const setVenue = useSettings((s) => s.setVenue);
   const venue: Venue = (params.get('venue') as Venue) === 'casino' || (params.get('venue') !== 'home' && savedVenue === 'casino') ? 'casino' : 'home';
   const charts = useCharts();
+  const solver = usePostflopSolverDb();
   const [started, setStarted] = useState(false);
 
   // Stats are live on the intro screen (they may still be loading from IndexedDB) and frozen at Start
@@ -63,11 +66,12 @@ export function SessionDrillScreen() {
     const all: DrillDef[] = [
       ...MATH_DRILLS,
       ...makePreflopDrills({ chart: venue === 'home' ? home : six, skills }),
-      ...makePostflopDrills({ chart: six, shortChart: home, model: REGULAR_MODEL, filters: {} }),
+      ...makePostflopDrills({ chart: six, shortChart: home, model: REGULAR_MODEL, filters: {}, solver }),
       ...makeExploitDrills({ chart: six }),
+      ...makeEquityDrills(venue === 'home' ? home : six),
     ];
     return new Map(all.map((d) => [d.kind, d]));
-  }, [charts, venue, skills]);
+  }, [charts, venue, skills, solver]);
 
   const exit = () => navigate('/');
 

@@ -5,6 +5,7 @@ import { useProfiles } from '../state/profilesStore';
 import { DEFAULT_CONFIG, useTable, type Speed, type TableConfig } from '../state/tableStore';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { ChipGroup, GameButton, Panel } from '../components/ui';
+import { STRADDLE_BB } from '../engine';
 
 const BLINDS = [
   { value: '0.5', label: '$0.25/$0.50' },
@@ -70,13 +71,33 @@ export function PlayScreen() {
               { value: 'coach', label: 'Coach mode' },
               { value: 'badges', label: 'Show player types' },
               { value: 'home', label: `Home Game preset (${profiles.length} players)` },
+              { value: 'straddle', label: `UTG straddle (${STRADDLE_BB}bb)` },
+              { value: 'meter', label: 'Table image meter' },
+              { value: 'hard', label: 'Hard mode' },
             ]}
-            value={[...(cfg.coach ? ['coach'] : []), ...(cfg.showBadges ? ['badges'] : []), ...(cfg.homeGame ? ['home'] : [])]}
-            onChange={(v) => set({ coach: v.includes('coach'), showBadges: v.includes('badges'), homeGame: v.includes('home') })}
+            value={[
+              ...(cfg.coach ? ['coach'] : []),
+              ...(cfg.showBadges ? ['badges'] : []),
+              ...(cfg.homeGame ? ['home'] : []),
+              ...(cfg.straddle ? ['straddle'] : []),
+              ...(cfg.imageMeter !== false ? ['meter'] : []),
+              ...(cfg.hardMode ? ['hard'] : []),
+            ]}
+            onChange={(v) =>
+              set({
+                coach: v.includes('coach'),
+                showBadges: v.includes('badges'),
+                homeGame: v.includes('home'),
+                straddle: v.includes('straddle'),
+                imageMeter: v.includes('meter'),
+                hardMode: v.includes('hard'),
+              })
+            }
           />
           <p className="text-xs font-semibold text-cream/70">
             Coach off: no hints while you play, graded afterwards only. Player types hidden: figure them out yourself. Home Game fills the table with your
-            profiles from the Exploit Lab.
+            profiles from the Exploit Lab. Straddle: UTG posts {STRADDLE_BB}bb and acts last preflop; the coach reads every seat one position tighter. Table image: bots remember what you show them and adjust; the meter shows how
+            they see you (Home Game starts you as Tight and Feared). Hard mode: no coach and no meter.
           </p>
         </div>
       </Panel>

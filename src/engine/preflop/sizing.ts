@@ -44,3 +44,26 @@ export function bigBlindPrice(openBb: number, limpers = 0, sbIn = 0.5): number {
   // Pot before the open: SB + BB (1, already ours) + limpers. BB has 1bb in already.
   return requiredEquity(sbIn + 1 + limpers, openBb, 1).requiredEquity;
 }
+
+/**
+ * Squeeze sizing (an open plus callers before you). Readable constants:
+ * in position about 3x the open + 1 open per caller; out of position about 4x + 1 per caller,
+ * because you'll play the pot without position and want to charge more / take it down more often.
+ */
+export const SQUEEZE_SIZING = { ipOpenMultiple: 3, oopOpenMultiple: 4, perCaller: 1 } as const;
+
+export function squeezeSize(openBb: number, callers: number, inPosition: boolean): SizingRule {
+  const mult = inPosition ? SQUEEZE_SIZING.ipOpenMultiple : SQUEEZE_SIZING.oopOpenMultiple;
+  const best = Math.round((openBb * (mult + SQUEEZE_SIZING.perCaller * callers)) * 2) / 2;
+  const alt = (m: number) => Math.round(openBb * (m + callers) * 2) / 2;
+  return {
+    best,
+    acceptable: [alt(mult - 0.5), alt(mult + 0.5)].filter((x) => x !== best),
+    reason: `Squeeze to about ${mult}x the ${openBb}bb open plus ${SQUEEZE_SIZING.perCaller} open per caller (${callers}) ${inPosition ? 'in position' : 'out of position'}: ${openBb} × (${mult} + ${callers}) = ${best}bb. The dead money from the callers makes a bigger raise worth it, and ${inPosition ? 'position lets you use a slightly smaller size' : 'playing out of position needs a bigger one'}.`,
+  };
+}
+
+/** Iso-raise size over limpers: the open-size rule with limpers (sizingRule), exposed with its name. */
+export function isoSize(mode: GameMode, seat: string, limpers: number): SizingRule {
+  return sizingRule(mode, seat, limpers);
+}

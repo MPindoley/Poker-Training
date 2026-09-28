@@ -98,7 +98,7 @@ export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion,
     const ms = performance.now() - start;
     record(question.kind, [question.skill, ...(question.tags ?? [])], grade, ms);
     setResults((r) => [...r, { kind: question.kind, grade, ms }]);
-    const xp = answerXp(grade, question.difficulty ?? spec.difficulty);
+    const xp = answerXp(grade, question.difficulty ?? spec.difficulty, question.confidence);
     addXp(xp);
     setXpEarned((x) => x + xp);
     if (grade === 'mistake') {
@@ -218,6 +218,9 @@ export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion,
               tone={outcome}
               title={timedOut ? "Time's up" : outcome === 'best' ? 'Correct!' : outcome === 'acceptable' ? 'Close enough' : `Answer: ${bestLabel}`}
               math={question.explanation.steps}
+              confidence={question.confidence}
+              confidenceNote={question.confidenceNote}
+              source={question.source}
             >
               <RichText text={answer?.feedback ?? question.explanation.summary} />
               {question.visual && <StrategyGrid visual={question.visual} className="mt-2" />}

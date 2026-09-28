@@ -20,7 +20,9 @@ import { toast } from '../../state/toastStore';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { GameButton, Panel, WeightGrid } from '../../components/ui';
 
-type Section = 'rfi' | 'vsOpen' | 'vs3bet';
+type Section = 'rfi' | 'vsOpen' | 'vs3bet' | 'vsLimpers' | 'squeeze' | 'vsLimpRaise' | 'vs4bet';
+
+const NOTE_KEY: Partial<Record<Section, string>> = { vsLimpers: 'vsLimpers', squeeze: 'squeeze', vsLimpRaise: 'vsLimpRaise', vs4bet: 'vs4bet' };
 const BRUSHES = [1, 0.75, 0.5, 0.25, 0];
 
 function Select({ value, onChange, options, label }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[]; label: string }) {
@@ -57,6 +59,10 @@ export function RangeEditorScreen() {
   const spotOptions = useMemo(() => {
     if (section === 'rfi') return chart.openingSeats.map((s) => ({ value: s, label: `${s} open` }));
     if (section === 'vsOpen') return chart.facingOpenPairs().map((p) => ({ value: `${p.seat}|${p.opener}`, label: `${p.seat} vs ${p.opener} open` }));
+    if (section === 'vsLimpers') return chart.limperSpots().map((p) => ({ value: `${p.seat}|${p.limpers}`, label: `${p.seat} vs ${p.limpers === 3 ? '3+' : p.limpers} limper${p.limpers === 1 ? '' : 's'}` }));
+    if (section === 'squeeze') return chart.squeezeSpots().map((p) => ({ value: `${p.seat}|${p.callers}`, label: `${p.seat}: open + ${p.callers === 2 ? '2+' : 1} caller${p.callers === 1 ? '' : 's'}` }));
+    if (section === 'vsLimpRaise') return chart.limpRaiseSeats().map((s) => ({ value: s, label: `${s} limped, facing a raise` }));
+    if (section === 'vs4bet') return chart.facing4betSeats().map((s) => ({ value: s, label: `${s} 3-bet, facing a 4-bet` }));
     return chart.facing3betSeats().map((s) => ({ value: s, label: `${s} open, facing 3-bet` }));
   }, [chart, section]);
   const [spotKey, setSpotKey] = useState(spotOptions[0]?.value ?? '');
@@ -65,10 +71,12 @@ export function RangeEditorScreen() {
   const spot: ActionRanges | null = useMemo(() => {
     if (!spotKey) return null;
     if (section === 'rfi') return chart.rfi(spotKey);
-    if (section === 'vsOpen') {
-      const [seat, opener] = spotKey.split('|');
-      return chart.vsOpen(seat!, opener!);
-    }
+    const [seat, extra] = spotKey.split('|');
+    if (section === 'vsOpen') return chart.vsOpen(seat!, extra!);
+    if (section === 'vsLimpers') return chart.vsLimpers(seat!, Number(extra));
+    if (section === 'squeeze') return chart.squeeze(seat!, Number(extra));
+    if (section === 'vsLimpRaise') return chart.vsLimpRaise(seat!);
+    if (section === 'vs4bet') return chart.vs4bet(seat!);
     return chart.vs3bet(spotKey);
   }, [chart, section, spotKey]);
 
@@ -131,12 +139,21 @@ export function RangeEditorScreen() {
                 { value: 'rfi', label: 'Open (RFI)' },
                 { value: 'vsOpen', label: 'Facing an open' },
                 { value: 'vs3bet', label: 'Facing a 3-bet' },
+                { value: 'vsLimpers', label: 'Behind limpers' },
+                { value: 'squeeze', label: 'Squeeze' },
+                { value: 'vsLimpRaise', label: 'Limped, facing a raise' },
+                { value: 'vs4bet', label: 'Facing a 4-bet' },
               ]}
             />
             <Select label="Spot" value={spotKey} onChange={setSpotKey} options={spotOptions} />
           </div>
         </div>
         <p className="mt-2 text-xs font-bold text-ink/70">{chart.json.description}</p>
+        {NOTE_KEY[section] && (chart.json.notes?.[NOTE_KEY[section]!] ?? (chart.json.inherit ? charts[chart.json.inherit]?.json.notes?.[NOTE_KEY[section]!] : undefined)) && (
+          <p className="mt-1 rounded-xl bg-ink/10 p-2 text-xs font-bold text-ink/80">
+            {chart.json.notes?.[NOTE_KEY[section]!] ?? charts[chart.json.inherit!]!.json.notes![NOTE_KEY[section]!]}
+          </p>
+        )}
       </Panel>
 
       <div className="flex gap-2">

@@ -10,7 +10,7 @@ export type Venue = 'home' | 'casino';
 export const VENUE_NAMES: Record<Venue, string> = { home: 'Home game (40bb)', casino: 'Casino (100bb)' };
 
 /** Rough seconds a player spends per question (reading + answering + reading the why). */
-export const SECONDS_PER_QUESTION: Record<SkillArea, number> = { math: 25, preflop: 12, postflop: 45, exploits: 45, reading: 40 };
+export const SECONDS_PER_QUESTION: Record<SkillArea, number> = { math: 25, preflop: 12, postflop: 45, exploits: 45, reading: 40, equity: 20 };
 
 export interface SessionSegment {
   area: SkillArea;
@@ -34,30 +34,33 @@ export interface SessionPlan {
 export const VENUE_KINDS: Record<Venue, Record<SkillArea, readonly string[]>> = {
   home: {
     math: ['math.potodds', 'math.outs', 'math.rule24', 'math.callfold'],
-    preflop: ['preflop.flash', 'preflop.defense'],
+    // Home games start most pots with limpers: listed three times so limper spots come up about half the time.
+    preflop: ['preflop.limpers', 'preflop.limpers', 'preflop.limpers', 'preflop.squeeze', 'preflop.flash', 'preflop.defense'],
     postflop: ['postflop.short', 'postflop.value', 'postflop.facing', 'postflop.multiway'],
-    exploits: ['exploit.efls', 'exploit.image'],
+    exploits: ['exploit.efls', 'exploit.image', 'exploit.imageShift'],
     reading: ['postflop.reading', 'math.combos'],
+    equity: ['equity.guess'],
   },
   casino: {
     math: ['math.potodds', 'math.mdf', 'math.ev', 'math.bluff'],
-    preflop: ['preflop.flash', 'preflop.defense', 'preflop.sizing', 'preflop.ladder'],
+    preflop: ['preflop.flash', 'preflop.defense', 'preflop.sizing', 'preflop.squeeze', 'preflop.vs4bet', 'preflop.limpers'],
     postflop: ['postflop.cbet', 'postflop.facing', 'postflop.checkraise', 'postflop.turn', 'postflop.river'],
-    exploits: ['exploit.efls', 'exploit.image'],
+    exploits: ['exploit.efls', 'exploit.image', 'exploit.imageShift'],
     reading: ['postflop.reading', 'math.combos'],
+    equity: ['equity.guess'],
   },
 };
 
 /** Share of warm-up time per area before the weak-spot boost. */
 export const WARMUP_SHARES: Record<Venue, Record<SkillArea, number>> = {
-  home: { math: 0.3, preflop: 0.2, postflop: 0.25, exploits: 0.1, reading: 0.15 },
-  casino: { math: 0.2, preflop: 0.25, postflop: 0.3, exploits: 0.1, reading: 0.15 },
+  home: { math: 0.2, preflop: 0.25, postflop: 0.25, exploits: 0.1, reading: 0.1, equity: 0.1 },
+  casino: { math: 0.15, preflop: 0.25, postflop: 0.3, exploits: 0.1, reading: 0.1, equity: 0.1 },
 };
 export const WARMUP_SECONDS = 600;
 /** Extra share of time given to the weakest area. */
 export const WEAK_SPOT_BOOST = 0.1;
 
-const WARMUP_ORDER: readonly SkillArea[] = ['math', 'preflop', 'postflop', 'reading', 'exploits'];
+const WARMUP_ORDER: readonly SkillArea[] = ['math', 'equity', 'preflop', 'postflop', 'reading', 'exploits'];
 
 export function estimateSeconds(segments: readonly SessionSegment[]): number {
   return segments.reduce((s, g) => s + g.count * SECONDS_PER_QUESTION[g.area], 0);

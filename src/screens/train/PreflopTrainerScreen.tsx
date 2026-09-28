@@ -22,6 +22,9 @@ const DRILLS = [
   { kind: 'preflop.ladder', title: 'Seat Ladder', blurb: 'Where a hand turns into an open', glyph: 'UP' },
   { kind: 'preflop.sizing', title: 'Sizing', blurb: '2.5x, 3x, 4x, +1 per limper', glyph: 'bb' },
   { kind: 'preflop.defense', title: 'Blind Defense', blurb: 'Big blind vs every seat, with pot odds', glyph: 'BB' },
+  { kind: 'preflop.limpers', title: 'Limpers', blurb: 'Iso-raise, overlimp or fold behind limpers', glyph: 'LP' },
+  { kind: 'preflop.squeeze', title: 'Squeeze', blurb: 'An open plus callers before you', glyph: 'SQ' },
+  { kind: 'preflop.vs4bet', title: 'Facing 4-bets', blurb: 'Jam, call or fold after you 3-bet', glyph: '4B' },
 ];
 
 export function PreflopTrainerScreen() {

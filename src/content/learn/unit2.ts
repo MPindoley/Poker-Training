@@ -149,6 +149,7 @@ export const UNIT2: Unit = {
         { prompt: 'You made a +EV call and lost. Was it a mistake?', choices: ['No', 'Yes'], answer: 0, why: 'Outcomes vary; the decision was profitable on average.' },
       ],
       drill: { route: '/train/math/play?kind=math.ev&d=bronze', label: 'EV Calculator drill' },
+      moreDrills: [{ route: '/train/lab?guess=1', label: 'Range Lab: guess equity' }],
     },
     {
       id: 'combos',

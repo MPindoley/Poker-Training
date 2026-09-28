@@ -6,6 +6,7 @@ import { liveStreak, useProgress } from '../state/progressStore';
 import { useLevel } from '../state/progression';
 import { useRewards } from '../state/rewardsStore';
 import { useEvents } from '../state/eventsStore';
+import { useLive } from '../state/liveStore';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { GameButton, Panel, ProgressBar, XPBadge } from '../components/ui';
 import { FlameIcon } from '../components/icons/FlameIcon';
@@ -19,6 +20,7 @@ export function HomeScreen() {
   const daily = useRewards((s) => s.daily);
   const chests = useRewards((s) => s.chests);
   const setChestOpen = useEvents((s) => s.setChestOpen);
+  const liveActive = useLive((s) => !!s.active);
   const arena = arenaForLevel(lvl.level);
   const shownStreak = liveStreak(streak, last);
   const practisedToday = last === dayKey(new Date());
@@ -120,6 +122,9 @@ export function HomeScreen() {
         </GameButton>
         <GameButton color="purple" size="lg" fullWidth onClick={() => navigate('/review/log')}>
           Log Last Night's Hands
+        </GameButton>
+        <GameButton color="gold" size="lg" fullWidth onClick={() => navigate('/review/live')}>
+          {liveActive ? 'Back to Live Session' : 'Start Live Session'}
         </GameButton>
       </div>
 

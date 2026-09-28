@@ -2,9 +2,10 @@
  * Export / import every piece of saved data as one JSON file, so nothing is ever lost.
  */
 import { kvGet, kvSet } from './db';
+import { migrateSection } from './migrations';
 
 /** Every persisted store name (see the `name` option of each Zustand persist store). */
-export const STORE_KEYS = ['progress', 'settings', 'drill-stats', 'charts', 'profiles', 'play-log', 'hand-log', 'learn', 'rewards'] as const;
+export const STORE_KEYS = ['progress', 'settings', 'drill-stats', 'charts', 'profiles', 'play-log', 'hand-log', 'learn', 'rewards', 'live', 'lab', 'postflop-solver'] as const;
 
 export interface Backup {
   app: 'felt-academy';
@@ -48,7 +49,13 @@ export function validateBackup(obj: unknown): Backup {
   return b as Backup;
 }
 
-/** Replace saved data with the backup's. The app reloads afterwards to pick it up. */
+/** Bring every section of a backup up to the current saved shapes (old backups keep working). */
+export function migrateBackup(backup: Backup): Backup {
+  const data = Object.fromEntries(Object.entries(backup.data).map(([k, v]) => [k, migrateSection(k, v as { state: unknown; version?: number })]));
+  return { ...backup, data };
+}
+
+/** Replace saved data with the backup's (migrated to the current shapes). The app reloads afterwards. */
 export async function importAll(backup: Backup): Promise<void> {
-  for (const [k, v] of Object.entries(backup.data)) await kvSet(k, JSON.stringify(v));
+  for (const [k, v] of Object.entries(migrateBackup(backup).data)) await kvSet(k, JSON.stringify(v));
 }

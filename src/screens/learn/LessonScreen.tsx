@@ -184,6 +184,11 @@ export function LessonScreen() {
           <GameButton color="green" size="lg" fullWidth onClick={() => navigate(lesson.drill.route)}>
             Practice: {lesson.drill.label}
           </GameButton>
+          {lesson.moreDrills?.map((d) => (
+            <GameButton key={d.route} color="blue" size="sm" fullWidth onClick={() => navigate(d.route)}>
+              Also: {d.label}
+            </GameButton>
+          ))}
           <div className="grid grid-cols-2 gap-2">
             <GameButton color="cream" onClick={() => setPhase('read')}>
               Re-read

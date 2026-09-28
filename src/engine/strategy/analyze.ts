@@ -13,6 +13,7 @@ import { callingRange, classifyRange, composition, continuingRange, raisingRange
 import type { Spot } from '../postflop/scenario';
 import type { Range } from '../range';
 import { classifyBoard, type BoardTexture } from '../texture';
+import { ALTERNATES, CLEAR_MARGIN_POT, marginConfidence, shiftModel, type AnswerSource, type Confidence } from './confidence';
 import { CBET_PLAN_TEXT, RULES, cbetHandRule, cbetPlan, sizeClass, type CbetPlan } from './rules';
 import { forStreet } from './villainModel';
 
@@ -57,6 +58,12 @@ export interface SpotAnalysis {
   best: OptionEval;
   summary: string;
   steps: string[];
+  /** Set when analysed with `confidence: true`. */
+  confidence?: Confidence;
+  /** One line on why (margin, or which assumption flips the answer). */
+  confidenceNote?: string;
+  /** Where the grade came from (the analyser is always a model estimate; solver matches override it). */
+  source?: AnswerSource;
 }
 
 const heroCode = (spot: Spot) => spot.hero.map(indexToString).join('');
@@ -97,6 +104,10 @@ export interface AnalyzeOptions {
   gradeBy?: 'cbet' | 'ev';
   /** Raise sizes offered when facing a bet, as multiples of the bet (default [3]). */
   raiseSizes?: number[];
+  /** Also classify how sure the grade is (re-runs the spot under alternate assumptions; ~3× the work). */
+  confidence?: boolean;
+  /** Override equity realization (used by the confidence re-runs). */
+  realization?: { ip: number; oop: number };
 }
 
 export function analyzeSpot(spot: Spot, opts: AnalyzeOptions = {}): SpotAnalysis {
@@ -113,7 +124,8 @@ export function analyzeSpot(spot: Spot, opts: AnalyzeOptions = {}): SpotAnalysis
   const pot = spot.pot;
   const stack = spot.effectiveStack;
   const spr = stack / pot;
-  const realize = street === 'river' ? 1 : spot.heroIP ? RULES.realization.ip : RULES.realization.oop;
+  const real = opts.realization ?? RULES.realization;
+  const realize = street === 'river' ? 1 : spot.heroIP ? real.ip : real.oop;
 
   // Range and nut advantage (hero's whole range vs villain's).
   const rangeEquity = calculateEquity([spot.heroRange, ranges[0]!], { board: boardCode(spot), iterations: 2500, seed, forceMonteCarlo: true }).players[0]!.equity;
@@ -140,9 +152,10 @@ export function analyzeSpot(spot: Spot, opts: AnalyzeOptions = {}): SpotAnalysis
     let noCall = 1;
     const callRanges: Range[] = [];
     const raiseRanges: { range: Range; p: number }[] = [];
-    for (const combos of sources) {
+    for (let vi = 0; vi < sources.length; vi++) {
+      const combos = sources[vi]!;
       const total = combos.reduce((t, c) => t + c.weight, 0);
-      const m = forStreet(spot.model, street);
+      const m = forStreet(spot.villains[vi]?.model ?? spot.model, street);
       const callR = allIn ? continuingRange(combos, price, m) : callingRange(combos, price, m);
       const raiseR = allIn ? null : raisingRange(combos, price, m);
       const pc = total > 0 ? totalOf(callR) / total : 0;
@@ -224,7 +237,7 @@ export function analyzeSpot(spot: Spot, opts: AnalyzeOptions = {}): SpotAnalysis
       const price = betFractionFacing(pot, raiseTo, stack);
       const combos = sources[0]!;
       const total = combos.reduce((t, c) => t + c.weight, 0);
-      const cont = continuingRange(combos, price, forStreet(spot.model, street));
+      const cont = continuingRange(combos, price, forStreet(spot.villains[0]!.model ?? spot.model, street));
       const pc = total > 0 ? totalOf(cont) / total : 0;
       const eqJ = pc > 0 ? equityVs(spot, [cont], ++eqSeed) : heroEquity;
       options.push({
@@ -365,7 +378,7 @@ export function analyzeSpot(spot: Spot, opts: AnalyzeOptions = {}): SpotAnalysis
       ? `${best.label} is best: with ${formatPercent(heroEquity)} equity against villain's betting range, ${best.action === 'fold' ? 'the price is too high' : best.action === 'call' ? 'the price is right' : 'raising wins the most'}.`
       : `${best.label} has the highest EV (≈ ${signedBb(best.ev)}): ${hero.description.toLowerCase()} with ${formatPercent(heroEquity)} equity vs villain's range.`;
 
-  return {
+  const result: SpotAnalysis = {
     hero,
     heroEquity,
     villainCombos,
@@ -380,5 +393,40 @@ export function analyzeSpot(spot: Spot, opts: AnalyzeOptions = {}): SpotAnalysis
     best,
     summary,
     steps,
+  };
+  if (opts.confidence) Object.assign(result, classifyConfidence(spot, opts, result, tol));
+  return result;
+}
+
+const bestKey = (o: OptionEval) => (o.action === 'bet' || o.action === 'raise' ? `${o.action}:${sizeClass(o.fraction)}` : o.action);
+
+/** Clear / close / model-dependent (see confidence.ts). */
+function classifyConfidence(spot: Spot, opts: AnalyzeOptions, a: SpotAnalysis, tol: number): Pick<SpotAnalysis, 'confidence' | 'confidenceNote' | 'source'> {
+  const evTop = a.options.reduce((x, y) => (y.ev > x.ev ? y : x));
+  if (a.plan && evTop !== a.best && evTop.ev - a.best.ev > tol) {
+    return { confidence: 'model-dependent', source: 'model', confidenceNote: `The c-bet rule and the one-street EV estimate disagree (${a.best.label} vs ${evTop.label}).` };
+  }
+  for (const alt of ALTERNATES) {
+    const shifted: Spot = {
+      ...spot,
+      model: shiftModel(spot.model, alt.stickiness),
+      villains: spot.villains.map((v) => (v.model ? { ...v, model: shiftModel(v.model, alt.stickiness) } : v)),
+    };
+    const b = analyzeSpot(shifted, { ...opts, confidence: false, realization: alt.realization });
+    if (bestKey(b.best) !== bestKey(a.best)) {
+      return { confidence: 'model-dependent', source: 'model', confidenceNote: `With ${alt.name}, ${b.best.label} becomes best instead of ${a.best.label}.` };
+    }
+  }
+  const evs = a.options.map((o) => o.ev);
+  const conf = marginConfidence(evs, spot.pot);
+  const sorted = [...evs].sort((x, y) => y - x);
+  const margin = sorted.length > 1 ? sorted[0]! - sorted[1]! : 0;
+  return {
+    confidence: conf,
+    source: 'model',
+    confidenceNote:
+      conf === 'clear'
+        ? `The best option wins by ≈ ${fmt(margin)}bb (≥ ${Math.round(CLEAR_MARGIN_POT * 100)}% of the ${fmt(spot.pot)}bb pot), and stays best when villains play looser or tighter.`
+        : `The top two options are within ≈ ${fmt(margin)}bb of each other (under ${Math.round(CLEAR_MARGIN_POT * 100)}% of the pot).`,
   };
 }

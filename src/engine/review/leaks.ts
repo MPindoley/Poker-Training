@@ -2,6 +2,7 @@
  * LEAK FINDER — groups graded decisions (from logged hands and played hands) into known leak
  * patterns and ranks them by estimated cost. Each rule is a readable predicate over a decision.
  */
+import { MISTAKE_WEIGHT } from '../strategy/confidence';
 import type { DecisionReview } from '../game/coach';
 
 export interface LeakRule {
@@ -77,7 +78,38 @@ export const LEAK_RULES: LeakRule[] = [
     applies: (d) => d.street === 'preflop' && t(d)?.preflopKind === 'rfi',
     leaked: (d) => t(d)?.actionType === 'call' && isMistake(d),
   },
+  {
+    id: 'overlimp-iso',
+    title: 'Overlimping hands that should iso-raise',
+    description: 'Behind limpers you limp along with hands that dominate them and should raise to isolate.',
+    drill: '/train/preflop/play?kind=preflop.limpers&d=silver',
+    drillName: 'Limpers',
+    applies: (d) => d.street === 'preflop' && t(d)?.preflopKind === 'vsLimpers' && /^raise/i.test(d.best ?? ''),
+    leaked: (d) => t(d)?.actionType === 'call' && d.grade !== 'best',
+  },
+  {
+    id: 'iso-small',
+    title: 'Iso-raising too small',
+    description: 'Your iso-raises over limpers are smaller than the size rule (the limpers get a great price to call).',
+    drill: '/train/preflop/play?kind=preflop.sizing&d=silver',
+    drillName: 'Sizing',
+    applies: (d) => d.street === 'preflop' && t(d)?.preflopKind === 'vsLimpers' && !!t(d)?.isoSize,
+    // Smaller than the recommended size by more than ¾ of a big blind.
+    leaked: (d) => t(d)!.isoSize!.chosen < t(d)!.isoSize!.recommended - ISO_SMALL_MARGIN_BB,
+  },
+  {
+    id: 'limp-call',
+    title: 'Limp-calling raises',
+    description: 'You limp and then call a raise with hands the chart folds — limping ranges are too weak to call.',
+    drill: '/train/preflop/play?kind=preflop.limpers&d=gold',
+    drillName: 'Limpers (incl. limp-raises)',
+    applies: (d) => d.street === 'preflop' && t(d)?.preflopKind === 'vsLimpRaise',
+    leaked: (d) => t(d)?.actionType === 'call' && isMistake(d),
+  },
 ];
+
+/** How much smaller than the iso-size rule (in bb) counts as "too small". */
+export const ISO_SMALL_MARGIN_BB = 0.75;
 
 export interface Leak {
   rule: LeakRule;
@@ -89,7 +121,16 @@ export interface Leak {
   cost: number;
   /** Leaks whose cost couldn't be computed for some hands. */
   uncosted: number;
+  /**
+   * Hits weighted by how sure each grade was: a mistake in a close or read-dependent spot counts
+   * MISTAKE_WEIGHT (half), a clear one counts fully. Leaks are ranked by weighted cost, then this.
+   */
+  severity: number;
+  /** Cost weighted the same way. */
+  weightedCost: number;
 }
+
+const hitWeight = (d: DecisionReview) => (d.grade === 'mistake' ? MISTAKE_WEIGHT[d.confidence ?? 'clear'] : 1);
 
 export function findLeaks(decisions: DecisionReview[]): Leak[] {
   return LEAK_RULES.map((rule) => {
@@ -103,8 +144,10 @@ export function findLeaks(decisions: DecisionReview[]): Leak[] {
       rate: opps.length ? hits.length / opps.length : 0,
       cost: Math.round(cost * 100) / 100,
       uncosted: hits.filter((d) => d.evLost === null).length,
+      severity: Math.round(hits.reduce((a, d) => a + hitWeight(d), 0) * 100) / 100,
+      weightedCost: Math.round(hits.reduce((a, d) => a + (d.evLost ?? 0) * hitWeight(d), 0) * 100) / 100,
     };
   })
     .filter((l) => l.count > 0)
-    .sort((a, b) => b.cost - a.cost || b.count - a.count);
+    .sort((a, b) => b.weightedCost - a.weightedCost || b.severity - a.severity || b.count - a.count);
 }

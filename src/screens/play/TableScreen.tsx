@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { HERO, SPEED_MS, useTable } from '../../state/tableStore';
+import { HERO, SPEED_MS, showImageMeter, useTable } from '../../state/tableStore';
+import { ImageMeter } from '../../components/table/ImageMeter';
 import { PokerTable } from '../../components/table/PokerTable';
 import { ActionBar } from '../../components/table/ActionBar';
 import { CoachPanel } from '../../components/table/CoachPanel';
 import { HandReviewSheet } from '../../components/table/HandReviewSheet';
 import { CardView, GameButton } from '../../components/ui';
-import { indexToString } from '../../engine';
+import { REGULAR_MODEL, imageCoachTip, imageLabel, indexToString, legalActions } from '../../engine';
 import { bbText } from '../../components/table/layout';
 
 export function TableScreen() {
@@ -23,6 +24,9 @@ export function TableScreen() {
 
   if (!t.active || !hand) return <Navigate to="/play" replace />;
   const heroTurn = !hand.finished && hand.toAct === HERO;
+  const label = imageLabel(t.image);
+  const coachOn = t.config.coach && !t.config.hardMode;
+  const imageTip = heroTurn && coachOn ? imageCoachTip(label, hand.street, (legalActions(hand)?.toCall ?? 0) === 0, REGULAR_MODEL) : null;
   const heroNet = (t.stacks[HERO] ?? 0) - (t.buyIns[HERO] ?? 0);
 
   return (
@@ -46,6 +50,7 @@ export function TableScreen() {
       <PokerTable hand={hand} bots={t.bots} positions={t.positions} showBadges={t.config.showBadges} />
 
       <div className="mt-auto space-y-2 pb-3">
+        {showImageMeter(t.config) && <ImageMeter label={label} />}
         {hand.seats[HERO]!.hole.length > 0 && (
           <div className="-mt-3 flex items-end justify-center gap-3">
             <div className={`flex gap-1 transition-opacity ${hand.seats[HERO]!.folded ? 'opacity-40' : ''}`}>
@@ -58,7 +63,7 @@ export function TableScreen() {
             </div>
           </div>
         )}
-        {heroTurn && t.config.coach && <CoachPanel hand={hand} analysis={t.coach.analysis} preflop={t.coach.preflop} loading={t.coach.loading} error={t.coach.error} />}
+        {heroTurn && coachOn && <CoachPanel hand={hand} analysis={t.coach.analysis} preflop={t.coach.preflop} loading={t.coach.loading} error={t.coach.error} imageTip={imageTip} />}
         {heroTurn && <ActionBar hand={hand} onAct={t.heroAct} bbDollars={t.config.bigBlindDollars} />}
         {hand.finished && <HandReviewSheet hand={hand} review={t.lastReview} onNext={t.nextHand} onSummary={() => navigate('/play/summary')} />}
         {!heroTurn && !hand.finished && <div className="py-3 text-center font-display text-sm text-cream/70">{hand.seats[hand.toAct ?? 0]?.name} is thinking…</div>}

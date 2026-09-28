@@ -27,6 +27,7 @@ export const UNIT4: Unit = {
         { prompt: 'On 7-6-5 two-tone, who usually has more two pairs and straights?', choices: ['The caller', 'The preflop raiser'], answer: 0, why: 'Callers have more small suited connectors and pairs.' },
       ],
       drill: { route: '/train/postflop/play?theme=cbet', label: 'C-bet drills' },
+      moreDrills: [{ route: '/train/lab?p=r:QQ%2B%2CAK%2CAQs~r:22-99%2C76s%2C65s%2CA5s&b=AsKd3c', label: 'Range Lab: compare two ranges' }],
     },
     {
       id: 'board-texture',

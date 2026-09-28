@@ -25,7 +25,11 @@ export type ExampleId =
   | 'spr'
   | 'icm'
   | 'push-fold'
-  | 'variance';
+  | 'variance'
+  | 'limpers'
+  | 'squeeze'
+  | 'straddle'
+  | 'image';
 
 export type Block =
   | { kind: 'p'; text: Dyn }
@@ -52,6 +56,8 @@ export interface Lesson {
   blocks: Block[];
   quiz: QuizQuestion[];
   drill: { route: string; label: string };
+  /** More drills to practise this lesson. */
+  moreDrills?: { route: string; label: string }[];
 }
 
 export interface Unit {

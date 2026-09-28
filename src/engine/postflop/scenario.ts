@@ -39,6 +39,8 @@ export interface Player {
   stack: number;
   /** Preflop aggressor. */
   aggressor: boolean;
+  /** This player's own model (e.g. a tagged profile); defaults to the spot's model. */
+  model?: VillainModel;
 }
 
 export interface HistoryLine {

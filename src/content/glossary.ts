@@ -1,5 +1,5 @@
 /** Searchable glossary. Look-alike terms carry an explicit “vs” note so they’re never confused. */
-import { bluffBreakeven, classCombos, hitProbability, minimumDefenseFrequency, requiredEquity, stackToPotRatio } from '../engine';
+import { canonicalFlop, parseCardIndices, preflopImageFactor, bluffBreakeven, classCombos, hitProbability, isoSize, minimumDefenseFrequency, requiredEquity, squeezeSize, stackToPotRatio, straddleView, STRADDLE_BB } from '../engine';
 import type { Dyn } from './learn/types';
 import { pct } from './learn/fmt';
 
@@ -40,7 +40,69 @@ export const GLOSSARY: GlossaryEntry[] = [
   { term: 'Hijack (HJ)', definition: 'Two seats right of the button.' },
   { term: 'ICM', definition: 'Independent Chip Model: converts tournament chip stacks into shares of the prize pool.' },
   { term: 'Implied odds', definition: 'Future money you expect to win when you hit, which can justify a call direct odds don’t.', vs: 'vs Reverse implied odds: money you lose later when you make a second-best hand.', related: ['Pot odds'] },
-  { term: 'Isolation raise', definition: 'Raising over a limper to play heads-up with them.' },
+  {
+    term: 'Iso-raise',
+    definition: 'An isolation raise: raising over one or more limpers to play heads-up with them, with the initiative.',
+    example: () => `${isoSize('home', 'BTN', 2).reason}`,
+    vs: 'vs Overlimp: an iso-raise builds a heads-up pot with a hand that dominates the limpers; an overlimp joins a cheap multi-way pot.',
+    related: ['Overlimp', 'Limp'],
+  },
+  {
+    term: 'Overlimp',
+    definition: 'Limping behind one or more players who already limped.',
+    example: () => `A small pair overlimps for a cheap multi-way flop: it hits a set ${pct(hitProbability(2, 50, 3))} of the time.`,
+    vs: 'vs Limp: a limp is the first call of the big blind; an overlimp comes after someone else limped.',
+    related: ['Iso-raise', 'Limp'],
+  },
+  {
+    term: 'Squeeze',
+    definition: 'A 3-bet after someone opens and one or more players call.',
+    example: () => `${squeezeSize(2.5, 1, true).reason}`,
+    vs: 'vs 3-bet: every squeeze is a 3-bet, but a squeeze has callers in the pot, so it can be bigger and wins more dead money.',
+    related: ['3-bet'],
+  },
+  {
+    term: 'Limp-raise',
+    definition: 'Limping, then re-raising after someone raises behind you — usually a trap with a very strong hand.',
+    vs: 'vs Limp-call: calling the raise after limping, usually a leak because limping ranges are weak.',
+    related: ['Limp'],
+  },
+  {
+    term: 'Straddle',
+    definition: 'A voluntary extra blind (usually twice the big blind) posted by the player after the big blind; they act last preflop.',
+    example: () => `40bb stacks with a ${STRADDLE_BB}bb straddle play like ${straddleView(['UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'], 40).effectiveStack}bb stacks.`,
+    related: ['Big blind (BB)'],
+  },
+  {
+    term: '3-bet',
+    definition: 'The first re-raise preflop (the blinds count as the first bet, the open as the second).',
+    vs: 'vs Squeeze: a squeeze is a 3-bet made after the open was called.',
+    related: ['Squeeze', '5-bet'],
+  },
+  {
+    term: '5-bet',
+    definition: 'The re-raise after a 4-bet. At normal stack depths it is usually all-in.',
+    vs: 'vs 4-bet: a 4-bet re-raises a 3-bet; a 5-bet re-raises the 4-bet.',
+    related: ['3-bet'],
+  },
+  {
+    term: 'Table image',
+    definition: 'How the other players see you, from what they’ve watched: how many hands you play, how often you bet, and what you’ve shown down. It fades as they see new hands.',
+    example: () => `In the app’s model, a regular who sees you as Tight and Feared calls your preflop raises about ${pct(1 - preflopImageFactor('tight-feared', 1), 0)} less often.`,
+    related: ['VPIP / PFR'],
+  },
+  {
+    term: 'Solver',
+    definition: 'Software that computes a game-theory strategy for a spot: how often each hand should take each action. Felt Academy can import its output; everything else is labelled as a chart or model estimate.',
+    related: ['Suit isomorphism'],
+  },
+  {
+    term: 'Suit isomorphism',
+    definition: 'Boards that only differ by which suit is which play the same, so one solved spot covers all of them.',
+    example: () =>
+      `As 7h 2c and Ad 7s 2h are the same spot: both map to ${canonicalFlop(parseCardIndices('As7h2c')).key === canonicalFlop(parseCardIndices('Ad7s2h')).key ? 'one' : 'different'} key (${canonicalFlop(parseCardIndices('As7h2c')).key}).`,
+    related: ['Solver', 'Rainbow'],
+  },
   { term: 'Kicker', definition: 'An unpaired side card that breaks ties between equal hands.' },
   { term: 'Limp', definition: 'Just calling the big blind preflop instead of raising.' },
   { term: 'MDF (minimum defense frequency)', definition: 'The share of your range you must continue with so bluffs can’t profit automatically: pot / (pot + bet).', example: () => `Facing a half-pot bet, MDF is ${pct(minimumDefenseFrequency(1, 0.5))}.` },
