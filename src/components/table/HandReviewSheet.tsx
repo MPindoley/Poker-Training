@@ -21,7 +21,7 @@ export function HandReviewSheet({ hand, review, onNext, onSummary }: { hand: Han
       {!review ? (
         <div className="mt-1 animate-pulse text-sm font-bold">Reviewing your decisions…</div>
       ) : (
-        <div className="mt-1 max-h-56 space-y-1.5 overflow-y-auto pr-1">
+        <div className="mt-1 max-h-[min(14rem,26dvh)] space-y-1.5 overflow-y-auto pr-1">
           {review.decisions.length === 0 && <div className="text-sm font-bold text-ink/70">You didn’t have a decision this hand.</div>}
           {review.decisions.map((d, i) => (
             <div key={i} className="rounded-xl border-2 border-ink bg-white/70 p-2 text-sm">

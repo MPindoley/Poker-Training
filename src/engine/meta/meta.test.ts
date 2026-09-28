@@ -126,9 +126,29 @@ describe('cosmetics and chests', () => {
   it('rolls rarities close to the stated odds', () => {
     const rng = createRng(42);
     const n = 20000;
-    const counts = { common: 0, rare: 0, epic: 0 };
+    const counts = { common: 0, rare: 0, epic: 0, mythic: 0 };
     for (let i = 0; i < n; i++) counts[openChest(new Set(), rng).rolled]++;
-    for (const k of ['common', 'rare', 'epic'] as const) expect(Math.abs(counts[k] / n - CHEST_ODDS[k])).toBeLessThan(0.015);
+    for (const k of ['common', 'rare', 'epic', 'mythic'] as const) expect(Math.abs(counts[k] / n - CHEST_ODDS[k])).toBeLessThan(0.015);
+    expect(Object.values(CHEST_ODDS).reduce((a, b) => a + b, 0)).toBeCloseTo(1, 9);
+  });
+  it('has mythical treasures in every slot, unique ids, and every theme points at a real felt', () => {
+    expect(new Set(COSMETICS.map((c) => c.id)).size).toBe(COSMETICS.length);
+    for (const slot of ['cardBack', 'felt', 'chips', 'theme'] as const) {
+      expect(COSMETICS.some((c) => c.slot === slot && c.rarity === 'mythic' && c.source === 'chest')).toBe(true);
+    }
+    for (const c of COSMETICS) if (c.slot === 'theme') expect(COSMETIC_BY_ID.get(c.felt)?.slot).toBe('felt');
+  });
+  it('a mythic roll falls back to a lower rarity when every mythic is owned', () => {
+    const owned = new Set(COSMETICS.filter((c) => c.rarity === 'mythic').map((c) => c.id));
+    // Find a seed whose first roll is mythic.
+    for (let seed = 1; seed < 5000; seed++) {
+      const r = openChest(owned, createRng(seed));
+      if (r.rolled === 'mythic') {
+        expect(r.item?.rarity).toBe('epic');
+        return;
+      }
+    }
+    throw new Error('no mythic roll found');
   });
 });
 

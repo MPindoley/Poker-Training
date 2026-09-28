@@ -6,10 +6,14 @@ import { PokerTable } from '../../components/table/PokerTable';
 import { ActionBar } from '../../components/table/ActionBar';
 import { CoachPanel } from '../../components/table/CoachPanel';
 import { HandReviewSheet } from '../../components/table/HandReviewSheet';
-import { CardView, GameButton } from '../../components/ui';
+import { ActionDock, CardView, GameButton } from '../../components/ui';
 import { REGULAR_MODEL, imageCoachTip, imageLabel, indexToString, legalActions } from '../../engine';
 import { bbText } from '../../components/table/layout';
 
+/**
+ * The table fits one phone screen: the felt shrinks to make room, and your cards, the coach and the
+ * action buttons stay pinned at the bottom so you never scroll to act.
+ */
 export function TableScreen() {
   const navigate = useNavigate();
   const t = useTable();
@@ -30,8 +34,8 @@ export function TableScreen() {
   const heroNet = (t.stacks[HERO] ?? 0) - (t.buyIns[HERO] ?? 0);
 
   return (
-    <div className="flex min-h-[calc(100dvh-1rem)] flex-col gap-2 pt-1">
-      <div className="flex items-center justify-between gap-2">
+    <div className="flex h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom))] flex-col gap-1.5 pt-1">
+      <div className="flex shrink-0 items-center justify-between gap-2">
         <GameButton size="sm" color="cream" onClick={() => navigate('/play')} aria-label="Leave table">
           ✕
         </GameButton>
@@ -47,12 +51,14 @@ export function TableScreen() {
         </GameButton>
       </div>
 
-      <PokerTable hand={hand} bots={t.bots} positions={t.positions} showBadges={t.config.showBadges} />
+      <div className="min-h-[200px] flex-1">
+        <PokerTable hand={hand} bots={t.bots} positions={t.positions} showBadges={t.config.showBadges} className="mx-auto h-full max-h-[460px]" />
+      </div>
 
-      <div className="mt-auto space-y-2 pb-3">
+      <ActionDock className="shrink-0 space-y-2 !pt-1">
         {showImageMeter(t.config) && <ImageMeter label={label} />}
         {hand.seats[HERO]!.hole.length > 0 && (
-          <div className="-mt-3 flex items-end justify-center gap-3">
+          <div className="flex items-end justify-center gap-3">
             <div className={`flex gap-1 transition-opacity ${hand.seats[HERO]!.folded ? 'opacity-40' : ''}`}>
               {hand.seats[HERO]!.hole.map((c) => (
                 <CardView key={`${hand.handNo}-${c}`} card={indexToString(c)} size="md" dealt />
@@ -63,11 +69,15 @@ export function TableScreen() {
             </div>
           </div>
         )}
-        {heroTurn && coachOn && <CoachPanel hand={hand} analysis={t.coach.analysis} preflop={t.coach.preflop} loading={t.coach.loading} error={t.coach.error} imageTip={imageTip} />}
+        {heroTurn && coachOn && (
+          <div className="max-h-[24dvh] overflow-y-auto rounded-2xl">
+            <CoachPanel hand={hand} analysis={t.coach.analysis} preflop={t.coach.preflop} loading={t.coach.loading} error={t.coach.error} imageTip={imageTip} />
+          </div>
+        )}
         {heroTurn && <ActionBar hand={hand} onAct={t.heroAct} bbDollars={t.config.bigBlindDollars} />}
         {hand.finished && <HandReviewSheet hand={hand} review={t.lastReview} onNext={t.nextHand} onSummary={() => navigate('/play/summary')} />}
         {!heroTurn && !hand.finished && <div className="py-3 text-center font-display text-sm text-cream/70">{hand.seats[hand.toAct ?? 0]?.name} is thinking…</div>}
-      </div>
+      </ActionDock>
     </div>
   );
 }

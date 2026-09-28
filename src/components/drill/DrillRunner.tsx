@@ -17,7 +17,7 @@ import { useDrillStats } from '../../state/drillStatsStore';
 import { useProgress } from '../../state/progressStore';
 import { useRewards } from '../../state/rewardsStore';
 import { toast } from '../../state/toastStore';
-import { Celebration, FeedbackBanner, GameButton, Panel, ProgressBar, RichText } from '../ui';
+import { ActionDock, Celebration, FeedbackBanner, GameButton, Panel, ProgressBar, RichText } from '../ui';
 import { QuestionContextView } from './QuestionView';
 import { StrategyGrid } from '../ui/StrategyGrid';
 import { FlameIcon } from '../icons/FlameIcon';
@@ -124,6 +124,16 @@ export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion,
     return () => window.clearTimeout(timeoutRef.current);
   }, [index, roundSeed, answered, question]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // After answering, bring the explanation into view (the Next button is pinned at the bottom).
+  const feedbackRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (answered) feedbackRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+  }, [answered]);
+  // Each new question starts at the top.
+  useEffect(() => {
+    window.scrollTo?.({ top: 0 });
+  }, [index, roundSeed]);
+
   const choose = (c: Choice) => {
     if (answered) return;
     window.clearTimeout(timeoutRef.current);
@@ -214,6 +224,7 @@ export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion,
           </h2>
 
           {answered && outcome && (
+            <div ref={feedbackRef} className="scroll-mt-3 space-y-3">
             <FeedbackBanner
               tone={outcome}
               title={timedOut ? "Time's up" : outcome === 'best' ? 'Correct!' : outcome === 'acceptable' ? 'Close enough' : `Answer: ${bestLabel}`}
@@ -226,13 +237,6 @@ export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion,
               {question.visual && <StrategyGrid visual={question.visual} className="mt-2" />}
               {question.visuals?.map((v, i) => <StrategyGrid key={i} visual={v} className="mt-2" />)}
             </FeedbackBanner>
-          )}
-        </motion.div>
-      </AnimatePresence>
-
-      <div className="mt-auto space-y-2 pb-3">
-        {answered ? (
-          <>
             <div className="grid grid-cols-2 gap-1.5">
               {question.choices.map((c) => (
                 <div
@@ -252,10 +256,17 @@ export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion,
                 </div>
               ))}
             </div>
-            <GameButton color="gold" size="lg" fullWidth onClick={next}>
-              {index >= length - 1 ? 'See results' : 'Next'}
-            </GameButton>
-          </>
+            </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
+
+      {/* The current action is always pinned at the bottom: the choices, then Next. */}
+      <ActionDock className="mt-auto">
+        {answered ? (
+          <GameButton color="gold" size="lg" fullWidth onClick={next}>
+            {index >= length - 1 ? 'See results' : 'Next'}
+          </GameButton>
         ) : (
           <div className={`grid gap-2.5 ${question.choices.length === 3 ? 'grid-cols-1' : 'grid-cols-2'}`}>
             {question.choices.map((c) => (
@@ -265,7 +276,7 @@ export function DrillRunner({ title, spec, onExit, makeQuestion = buildQuestion,
             ))}
           </div>
         )}
-      </div>
+      </ActionDock>
     </div>
   );
 }

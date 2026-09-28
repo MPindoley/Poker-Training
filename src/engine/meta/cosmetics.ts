@@ -6,12 +6,14 @@ import type { Rng } from '../rng';
 import { ARENAS } from './arenas';
 
 export type CosmeticSlot = 'cardBack' | 'felt' | 'chips' | 'theme';
-export type Rarity = 'common' | 'rare' | 'epic';
+export type Rarity = 'common' | 'rare' | 'epic' | 'mythic';
 
 export const SLOT_NAMES: Record<CosmeticSlot, string> = { cardBack: 'Card backs', felt: 'Felt colours', chips: 'Chip sets', theme: 'Table themes' };
-export const RARITY_NAMES: Record<Rarity, string> = { common: 'Common', rare: 'Rare', epic: 'Epic' };
+export const RARITY_NAMES: Record<Rarity, string> = { common: 'Common', rare: 'Rare', epic: 'Epic', mythic: 'Mythic' };
+/** Lowest to highest. */
+export const RARITIES: readonly Rarity[] = ['common', 'rare', 'epic', 'mythic'];
 
-export type CardBackPattern = 'lattice' | 'stripes' | 'dots' | 'sunburst' | 'waves';
+export type CardBackPattern = 'lattice' | 'stripes' | 'dots' | 'sunburst' | 'waves' | 'scales' | 'stars' | 'diamonds';
 
 interface Base {
   id: string;
@@ -96,6 +98,15 @@ export const COSMETICS: readonly Cosmetic[] = [
   back('sunburst', 'Golden Sunburst', 'rare', '#b87908', '#fff6e0', 'sunburst'),
   back('midnight', 'Midnight Lattice', 'epic', '#1b1230', '#f5b820', 'lattice'),
   back('ember', 'Ember Sunburst', 'epic', '#6b1a0f', '#ff9c5a', 'sunburst'),
+  // Mythical treasures (original designs).
+  back('sprite', 'Forest Sprite', 'common', '#2e6b3f', '#c8f5a0', 'dots'),
+  back('griffin', 'Griffin Feather', 'rare', '#7a4d18', '#ffe3a8', 'waves'),
+  back('starlit', 'Starlit Sky', 'rare', '#101a3d', '#fff6c0', 'stars'),
+  back('kraken', 'Kraken Deep', 'epic', '#0b2a3a', '#3fd4c0', 'scales'),
+  back('moonstone', 'Moonstone', 'epic', '#2c2f4a', '#cfd8ff', 'diamonds'),
+  back('dragon', 'Dragon Scale', 'mythic', '#5a0f14', '#ffb13f', 'scales'),
+  back('phoenix', 'Phoenix Plume', 'mythic', '#7a1d05', '#ffd24a', 'sunburst'),
+  back('celestial', 'Celestial Crown', 'mythic', '#140a2e', '#f5d77a', 'stars'),
 
   felt('green', 'Classic Green', 'common', '#1e8a4f', '#0b3d26', 'default'),
   felt('blue', 'Tournament Blue', 'common', '#2c7fd0', '#0f2f5c'),
@@ -104,11 +115,21 @@ export const COSMETICS: readonly Cosmetic[] = [
   felt('purple', 'Royal Purple', 'rare', '#7b48d6', '#2a1257'),
   felt('charcoal', 'Charcoal', 'rare', '#4a4f5c', '#15171d'),
   felt('gold', 'Champagne', 'epic', '#caa24a', '#4d3710'),
+  felt('glade', 'Mossy Glade', 'common', '#4f8f3a', '#1d3a14'),
+  felt('frost', 'Frost Giant', 'rare', '#7fb8d8', '#1f4a63'),
+  felt('dune', 'Sunset Dune', 'rare', '#d98545', '#5c2a12'),
+  felt('enchanted', 'Enchanted Grove', 'epic', '#2fae7e', '#0a2e1f'),
+  felt('hoard', "Dragon's Hoard", 'mythic', '#d4a017', '#5a2d00'),
+  felt('starfall', 'Starfall', 'mythic', '#4a3a9a', '#0a0624'),
 
   chips('classic', 'Classic', 'common', [['#f4f1ea', '#2f7fe8'], ['#e5383b', '#fff6e0'], ['#22b35e', '#fff6e0'], ['#2a2440', '#f5b820'], ['#8b4ae8', '#fff6e0'], ['#f5b820', '#6b3a1e']], 'default'),
   chips('pastel', 'Pastel', 'common', [['#fdf3ff', '#b58cf0'], ['#ffb3c1', '#fff'], ['#b9f3c8', '#2e7a4a'], ['#a8d4ff', '#1d4f8a'], ['#ffe0a3', '#8a5a0f'], ['#e0c3ff', '#4a2380']]),
   chips('neon', 'Neon', 'rare', [['#1b1230', '#39ff9c'], ['#1b1230', '#ff3fa4'], ['#1b1230', '#3fd4ff'], ['#1b1230', '#fff13f'], ['#1b1230', '#b36bff'], ['#1b1230', '#ff8a3f']]),
   chips('royal', 'Royal', 'epic', [['#fff6e0', '#b87908'], ['#5623a6', '#f5b820'], ['#0f2f5c', '#f5b820'], ['#1b1230', '#f5b820'], ['#a8161f', '#f5b820'], ['#f5b820', '#1b1230']]),
+  chips('seaglass', 'Sea Glass', 'rare', [['#e6fbf6', '#2e9e8f'], ['#9fe3d6', '#0b4f47'], ['#6fc3e8', '#fff'], ['#3f8fbf', '#e6fbf6'], ['#2a5f8f', '#9fe3d6'], ['#0b2a3a', '#3fd4c0']]),
+  chips('dragonegg', 'Dragon Eggs', 'epic', [['#f4e3c8', '#8a5a1e'], ['#6b8f3a', '#f4e3c8'], ['#3a6b8f', '#ffd24a'], ['#8f3a3a', '#ffd24a'], ['#4a2a6b', '#ffb13f'], ['#1b1230', '#ff6b3f']]),
+  chips('phoenix', 'Phoenix Embers', 'mythic', [['#fff1c8', '#ff6b1f'], ['#ffd24a', '#7a1d05'], ['#ff9c3f', '#fff1c8'], ['#e5383b', '#ffd24a'], ['#7a1d05', '#ffb13f'], ['#2a0a02', '#ffd24a']]),
+  chips('frostcrystal', 'Frost Crystals', 'mythic', [['#f4fbff', '#6fb2ff'], ['#cfe8ff', '#1f4a63'], ['#9fd0ff', '#f4fbff'], ['#5a8fd8', '#e6f4ff'], ['#2c4f8f', '#cfe8ff'], ['#0f1f3d', '#9fd0ff']]),
 
   theme('kitchen', 'Kitchen Table', 'common', '#e0b27a', '#9a6a3a', 'green', '#ffd79a', 'kitchen'),
   theme('home', 'Home Game', 'common', '#d59256', '#6b3a1e', 'green', '#ffe27a', 'home'),
@@ -117,6 +138,9 @@ export const COSMETICS: readonly Cosmetic[] = [
   theme('highroller', 'High Roller Room', 'epic', '#2a2440', '#0d0a18', 'purple', '#e3c8ff', 'highroller'),
   theme('marble', 'Marble Lounge', 'rare', '#e8e4dc', '#8f8a80', 'charcoal', '#ffffff'),
   theme('neon', 'Neon Night', 'epic', '#3fd4ff', '#1b1230', 'purple', '#ff3fa4'),
+  theme('wizard', "Wizard's Tower", 'epic', '#6a4a9a', '#1f1033', 'purple', '#b88bff'),
+  theme('lair', "Dragon's Lair", 'mythic', '#8a2a0a', '#2a0a02', 'hoard', '#ffb13f'),
+  theme('skypalace', 'Sky Palace', 'mythic', '#eef4ff', '#8aa8d8', 'starfall', '#fff6c0'),
 ];
 
 export const COSMETIC_BY_ID: ReadonlyMap<string, Cosmetic> = new Map(COSMETICS.map((c) => [c.id, c]));
@@ -136,7 +160,7 @@ export function arenaCosmetics(level: number): string[] {
 }
 
 /** Chance of each rarity when a chest is opened (sums to 1). */
-export const CHEST_ODDS: Record<Rarity, number> = { common: 0.6, rare: 0.3, epic: 0.1 };
+export const CHEST_ODDS: Record<Rarity, number> = { common: 0.55, rare: 0.3, epic: 0.12, mythic: 0.03 };
 
 export interface ChestResult {
   rolled: Rarity;
@@ -150,9 +174,19 @@ export interface ChestResult {
  */
 export function openChest(owned: ReadonlySet<string>, rng: Rng): ChestResult {
   const r = rng();
-  const rolled: Rarity = r < CHEST_ODDS.common ? 'common' : r < CHEST_ODDS.common + CHEST_ODDS.rare ? 'rare' : 'epic';
-  const order: Record<Rarity, Rarity[]> = { common: ['common', 'rare', 'epic'], rare: ['rare', 'common', 'epic'], epic: ['epic', 'rare', 'common'] };
-  for (const rarity of order[rolled]) {
+  let acc = 0;
+  let rolled: Rarity = 'mythic';
+  for (const rarity of RARITIES) {
+    acc += CHEST_ODDS[rarity];
+    if (r < acc) {
+      rolled = rarity;
+      break;
+    }
+  }
+  // Fall back to the nearest rarity that still has something to find: lower first, then higher.
+  const i = RARITIES.indexOf(rolled);
+  const order = [rolled, ...RARITIES.slice(0, i).reverse(), ...RARITIES.slice(i + 1)];
+  for (const rarity of order) {
     const pool = COSMETICS.filter((c) => c.source === 'chest' && c.rarity === rarity && !owned.has(c.id));
     if (pool.length) return { rolled, item: pool[Math.floor(rng() * pool.length)]! };
   }

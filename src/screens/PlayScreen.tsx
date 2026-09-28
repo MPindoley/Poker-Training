@@ -4,7 +4,7 @@ import { useCharts } from '../state/chartStore';
 import { useProfiles } from '../state/profilesStore';
 import { DEFAULT_CONFIG, useTable, type Speed, type TableConfig } from '../state/tableStore';
 import { ScreenHeader } from '../components/ScreenHeader';
-import { ChipGroup, GameButton, Panel } from '../components/ui';
+import { ActionDock, ChipGroup, GameButton, Panel } from '../components/ui';
 import { STRADDLE_BB } from '../engine';
 
 const BLINDS = [
@@ -101,9 +101,11 @@ export function PlayScreen() {
           </p>
         </div>
       </Panel>
-      <GameButton color="gold" size="lg" fullWidth onClick={go}>
-        {active ? 'Start new session' : 'Deal me in'}
-      </GameButton>
+      <ActionDock tabs>
+        <GameButton color="gold" size="lg" fullWidth onClick={go}>
+          {active ? 'Start new session' : 'Deal me in'}
+        </GameButton>
+      </ActionDock>
     </div>
   );
 }

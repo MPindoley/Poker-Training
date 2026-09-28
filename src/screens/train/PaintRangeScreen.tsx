@@ -6,7 +6,7 @@ import { useRewards } from '../../state/rewardsStore';
 import { useDrillStats } from '../../state/drillStatsStore';
 import { useProgress } from '../../state/progressStore';
 import { ScreenHeader } from '../../components/ScreenHeader';
-import { Celebration, FeedbackBanner, GameButton, Panel, RangeGrid } from '../../components/ui';
+import { ActionDock, Celebration, FeedbackBanner, GameButton, RangeGrid } from '../../components/ui';
 
 /** What you paint: the open range, or the iso-raise / squeeze range of a home-game spot. */
 interface PaintMode {
@@ -155,7 +155,7 @@ export function PaintRangeScreen() {
         </>
       )}
 
-      <Panel tone="night" className="!py-3">
+      <ActionDock tabs>
         {submitted ? (
           <GameButton color="gold" size="lg" fullWidth onClick={() => next()}>
             Next seat
@@ -170,7 +170,7 @@ export function PaintRangeScreen() {
             </GameButton>
           </div>
         )}
-      </Panel>
+      </ActionDock>
     </div>
   );
 }

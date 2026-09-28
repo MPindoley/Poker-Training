@@ -125,6 +125,20 @@
   .pt-safe {
     padding-top: env(safe-area-inset-top);
   }
+  /* Action dock: the buttons you need right now stay pinned at the bottom of the screen. */
+  .action-dock {
+    position: sticky;
+    bottom: 0;
+    z-index: 30;
+    margin-inline: -1rem;
+    padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--color-felt-900) 70%, rgb(11 61 38 / 0));
+  }
+  /* On screens with the tab bar, sit just above it. */
+  .action-dock-tabs {
+    bottom: calc(4.25rem + env(safe-area-inset-bottom));
+    padding-bottom: 0.75rem;
+  }
 }
 
 @keyframes shine {
