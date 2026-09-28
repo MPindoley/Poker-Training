@@ -44,6 +44,8 @@ Reuse these; extend them rather than restyling ad hoc. All are shown on the `/st
 - `FeedbackBanner` (grade + why + worked math) and `ToastHost` / `toast()` for transient messages.
 - `Celebration` — confetti + coins burst.
 - `Toggle` — on/off switch for settings.
+- `ActionDock` — sticky bottom bar for a screen's current actions so they never need a scroll
+  (`tabs` lifts it above the tab bar). Put answer choices, Next, Run and Save buttons in it.
 
 ## Engine map (`src/engine`)
 - `cards` (Card, parse, integer indices 0..51 = rank*4+suit), `rng` (seedable Mulberry32, shuffle).
@@ -89,7 +91,8 @@ Reuse these; extend them rather than restyling ad hoc. All are shown on the `/st
 ## Progression (`src/engine/meta`, pure)
 - `skills` (6 radar areas incl. Equity Intuition; each drill kind maps to one; smoothed accuracy), `xp` (answer XP × difficulty,
   round accuracy bonus), `arenas` (level-gated, each unlocks a table theme), `cosmetics` (card backs, felts,
-  chip sets, themes; `openChest`; `resolveLoadout`), `daily` (3 tasks from the weakest areas, seeded by day),
+  chip sets, themes; rarities common/rare/epic/mythic with `CHEST_ODDS`; `openChest` falls back to a lower
+  rarity when a tier is fully owned; `resolveLoadout`), `daily` (3 tasks from the weakest areas, seeded by day),
   `sessions` (Quick Drill / Warm-Up plans), `achievements` (pure checks over a snapshot).
 - State: `rewardsStore` (cosmetics, chests, achievements, daily counts), `eventsStore` (level-up queue).
   `ProgressionHost` (mounted in App) turns milestones into chests and celebrations; it waits for

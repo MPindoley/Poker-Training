@@ -33,11 +33,14 @@ export function PokerTable({
   bots,
   positions,
   showBadges,
+  className = 'h-[min(460px,56dvh)]',
 }: {
   hand: HandState;
   bots: Record<number, BotProfile | undefined>;
   positions: Record<number, string>;
   showBadges: boolean;
+  /** Height classes; the layout scales to whatever size it gets. */
+  className?: string;
 }) {
   const { theme, felt } = useCosmetics();
   const ref = useRef<HTMLDivElement>(null);
@@ -58,7 +61,7 @@ export function PokerTable({
   const winners = new Set(Object.keys(hand.result?.collected ?? {}).map(Number));
 
   return (
-    <div ref={ref} className="relative h-[min(460px,56dvh)] w-full select-none" data-theme={theme.id}>
+    <div ref={ref} className={`relative w-full select-none ${className}`} data-theme={theme.id}>
       <div className="pointer-events-none absolute inset-0 rounded-[50%] opacity-40 blur-2xl" style={{ background: `radial-gradient(closest-side, ${theme.glow}, transparent)` }} />
       {/* Wood rail and felt */}
       <div className="wood-grain absolute inset-x-1 inset-y-6 rounded-[48%] border-[3px] border-ink shadow-chunky" style={{ backgroundImage: `repeating-linear-gradient(100deg, rgb(255 255 255 / 0.06) 0 2px, transparent 2px 9px, rgb(0 0 0 / 0.07) 9px 11px, transparent 11px 19px), linear-gradient(to bottom, ${theme.railLight}, ${theme.railDark})` }} />

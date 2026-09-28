@@ -13,6 +13,7 @@ export const RARITY_STYLE: Record<Rarity, string> = {
   common: 'bg-cream text-ink',
   rare: 'bg-sapphire text-white',
   epic: 'bg-grape text-white',
+  mythic: 'bg-gradient-to-r from-gold-300 via-[#ff9c5a] to-[#c9a8ff] text-ink',
 };
 
 /** Full-screen chest opening: wobble → burst → reveal. */
@@ -89,10 +90,20 @@ export function ChestSheet() {
             )}
             {stage === 'revealed' && result && (
               <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 16 }} className="relative">
-                <Celebration count={44} />
+                <Celebration count={result.item?.rarity === 'mythic' ? 90 : 44} />
                 <ChestIcon open className="mx-auto h-24 w-24" />
                 {result.item ? (
                   <>
+                    {result.item.rarity === 'mythic' && (
+                      <motion.div
+                        className="text-outline font-display text-2xl text-gold-300"
+                        initial={{ scale: 0.4, rotate: -8 }}
+                        animate={{ scale: [0.4, 1.25, 1], rotate: [-8, 4, 0] }}
+                        transition={{ duration: 0.7 }}
+                      >
+                        Mythical treasure!
+                      </motion.div>
+                    )}
                     <div className={`mx-auto mt-1 w-fit rounded-lg border-2 border-ink px-2 py-0.5 font-display text-sm ${RARITY_STYLE[result.item.rarity]}`}>
                       {RARITY_NAMES[result.item.rarity]} · {SLOT_NAMES[result.item.slot].replace(/s$/, '')}
                     </div>

@@ -5,7 +5,7 @@ import { useHandLog } from '../../state/handLogStore';
 import { useProfiles } from '../../state/profilesStore';
 import { toast } from '../../state/toastStore';
 import { ScreenHeader } from '../../components/ScreenHeader';
-import { ChipGroup, GameButton, Panel } from '../../components/ui';
+import { ActionDock, ChipGroup, GameButton, Panel } from '../../components/ui';
 
 type Shift = 'less' | 'same' | 'more';
 const OBSERVE: { key: keyof PlayerStats; label: string; step: number }[] = [
@@ -176,9 +176,11 @@ export function SessionEditorScreen() {
         </Panel>
       )}
 
-      <GameButton color="gold" size="lg" fullWidth onClick={save}>
-        Save session
-      </GameButton>
+      <ActionDock tabs>
+        <GameButton color="gold" size="lg" fullWidth onClick={save}>
+          Save session
+        </GameButton>
+      </ActionDock>
       {existing && (
         <GameButton
           color="red"

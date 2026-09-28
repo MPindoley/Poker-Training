@@ -23,7 +23,7 @@ import { useLab } from '../../state/labStore';
 import { useDrillStats } from '../../state/drillStatsStore';
 import { useProgress } from '../../state/progressStore';
 import { ScreenHeader } from '../../components/ScreenHeader';
-import { CardPicker, CardView, Celebration, FeedbackBanner, GameButton, Panel, Toggle } from '../../components/ui';
+import { ActionDock, CardPicker, CardView, Celebration, FeedbackBanner, GameButton, Panel, Toggle } from '../../components/ui';
 import { toast } from '../../state/toastStore';
 import { PlayerEditor } from '../../components/lab/PlayerEditor';
 import { AdvantagePanel, BlockersPanel, BucketsPanel, EquityPanel, NextCardPanel, ShowdownPanel } from '../../components/lab/LabResults';
@@ -264,11 +264,13 @@ export function RangeLabScreen() {
         </Panel>
       )}
 
-      {invalid && <p className="text-center text-sm font-bold text-gold-300">{invalid}</p>}
       {!result && (
-        <GameButton color="gold" size="lg" fullWidth disabled={!!invalid || !!busy} onClick={run}>
-          {guessMode ? 'Lock in my guess' : 'Run the numbers'}
-        </GameButton>
+        <ActionDock tabs className="space-y-1">
+          {invalid && <p className="text-center text-sm font-bold text-gold-300">{invalid}</p>}
+          <GameButton color="gold" size="lg" fullWidth disabled={!!invalid || !!busy} onClick={run}>
+            {guessMode ? 'Lock in my guess' : 'Run the numbers'}
+          </GameButton>
+        </ActionDock>
       )}
       {busy && <Busy text={busy} />}
       {error && (

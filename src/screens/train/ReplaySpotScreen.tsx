@@ -4,7 +4,7 @@ import { REGULAR_MODEL, analyzeSpot, buildReplaySpot, type PreflopLine, type Rep
 import { useActiveChart } from '../../state/chartStore';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { SpotAnalysisView } from '../../components/SpotAnalysisView';
-import { CardPicker, ChipGroup, GameButton, Panel } from '../../components/ui';
+import { ActionDock, CardPicker, ChipGroup, GameButton, Panel } from '../../components/ui';
 import { useProfileModels } from '../../state/profileModels';
 
 const SEATS = ['UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
@@ -159,9 +159,11 @@ export function ReplaySpotScreen() {
         </div>
       </Panel>
 
-      <GameButton color="gold" size="lg" fullWidth disabled={busy || hero.length < 2 || board.length < 3} onClick={analyze}>
-        {busy ? 'Analyzing…' : 'Analyze'}
-      </GameButton>
+      <ActionDock tabs>
+        <GameButton color="gold" size="lg" fullWidth disabled={busy || hero.length < 2 || board.length < 3} onClick={analyze}>
+          {busy ? 'Analyzing…' : 'Analyze'}
+        </GameButton>
+      </ActionDock>
       {error && (
         <Panel tone="night">
           <p className="font-bold text-[#ff9c94]">{error}</p>

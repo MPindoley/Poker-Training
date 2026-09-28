@@ -5,7 +5,7 @@ import { useHandLog } from '../../state/handLogStore';
 import { useProfiles } from '../../state/profilesStore';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { SeatTable, type SeatInfo } from '../../components/review/SeatTable';
-import { CardPicker, ChipGroup, GameButton, MiniCard, Panel, Toggle } from '../../components/ui';
+import { ActionDock, CardPicker, ChipGroup, GameButton, MiniCard, Panel, Toggle } from '../../components/ui';
 
 const STREET_NAME: Record<LogStreet, string> = { preflop: 'Preflop', flop: 'Flop', turn: 'Turn', river: 'River' };
 
@@ -219,6 +219,30 @@ export function HandLoggerScreen() {
             </div>
           </Panel>
 
+          {timeline.length > 0 && (
+            <Panel tone="night" className="!py-2">
+              <ol className="space-y-1 text-xs font-semibold text-cream/90">
+                {timeline.map(({ st, acts }) => (
+                  <li key={st}>
+                    <span className="font-display text-gold-300">{STREET_NAME[st]}: </span>
+                    {acts
+                      .map((a) => {
+                        const p = players.find((x) => x.id === a.actor)!;
+                        const amt = a.type === 'bet' || a.type === 'raise' ? ` ${r1(a.resolvedTo)}${a.estimated ? '?' : ''}` : a.type === 'call' ? ` ${r1(a.added)}` : '';
+                        return `${nameOf(p)} ${a.type}${amt}${a.allIn ? ' (all-in)' : ''}`;
+                      })
+                      .join(' · ')}
+                  </li>
+                ))}
+              </ol>
+              {replay.allIn.length > 0 && replay.pots.length > 1 && (
+                <p className="mt-1 text-xs font-bold text-gold-300">
+                  Pots: {replay.pots.map((p, i) => `${i === 0 ? 'main' : `side ${i}`} ${r1(p.amount)}bb`).join(' · ')}
+                </p>
+              )}
+            </Panel>
+          )}
+
           {!next ? (
             <Panel tone="cream">
               <p className="font-bold text-ink">
@@ -235,7 +259,11 @@ export function HandLoggerScreen() {
               <CardPicker value={board} max={replay.needsBoard} disabled={hero} onChange={setBoard} />
               <p className="mt-1 text-xs font-semibold text-cream/70">Tap the {next.street === 'flop' ? '3 flop cards' : `${next.street} card`}.</p>
             </Panel>
-          ) : (
+          ) : null}
+
+          {/* Whoever acts next, plus Undo / End here, stays pinned above the tab bar. */}
+          <ActionDock tabs className="space-y-2">
+          {next && !needBoard && (
             <Panel tone={nextPlayer?.hero ? 'wood' : 'cream'} title={`${nextPlayer ? nameOf(nextPlayer) : ''} (${nextPlayer?.seat}) — ${STREET_NAME[next.street]}`}>
               {sizing ? (
                 <div className="space-y-2">
@@ -281,30 +309,6 @@ export function HandLoggerScreen() {
             </Panel>
           )}
 
-          {timeline.length > 0 && (
-            <Panel tone="night" className="!py-2">
-              <ol className="space-y-1 text-xs font-semibold text-cream/90">
-                {timeline.map(({ st, acts }) => (
-                  <li key={st}>
-                    <span className="font-display text-gold-300">{STREET_NAME[st]}: </span>
-                    {acts
-                      .map((a) => {
-                        const p = players.find((x) => x.id === a.actor)!;
-                        const amt = a.type === 'bet' || a.type === 'raise' ? ` ${r1(a.resolvedTo)}${a.estimated ? '?' : ''}` : a.type === 'call' ? ` ${r1(a.added)}` : '';
-                        return `${nameOf(p)} ${a.type}${amt}${a.allIn ? ' (all-in)' : ''}`;
-                      })
-                      .join(' · ')}
-                  </li>
-                ))}
-              </ol>
-              {replay.allIn.length > 0 && replay.pots.length > 1 && (
-                <p className="mt-1 text-xs font-bold text-gold-300">
-                  Pots: {replay.pots.map((p, i) => `${i === 0 ? 'main' : `side ${i}`} ${r1(p.amount)}bb`).join(' · ')}
-                </p>
-              )}
-            </Panel>
-          )}
-
           <div className="grid grid-cols-2 gap-2">
             <GameButton color="cream" size="sm" disabled={!actions.length} onClick={() => setActions((a) => a.slice(0, -1))}>
               Undo
@@ -313,6 +317,7 @@ export function HandLoggerScreen() {
               {next ? 'End here' : 'Next'}
             </GameButton>
           </div>
+          </ActionDock>
         </>
       )}
 

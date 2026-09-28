@@ -5,7 +5,7 @@ import { ALL_LESSONS, dyn, lessonById, type Block } from '../../content/learn';
 import { useLearn } from '../../state/learnStore';
 import { useProgress } from '../../state/progressStore';
 import { ScreenHeader } from '../../components/ScreenHeader';
-import { Celebration, FeedbackBanner, GameButton, Panel, RichText } from '../../components/ui';
+import { ActionDock, Celebration, FeedbackBanner, GameButton, Panel, RichText } from '../../components/ui';
 import { LessonExample } from '../../components/learn/Examples';
 
 function BlockView({ b }: { b: Block }) {
@@ -62,6 +62,7 @@ function Quiz({ lessonId, onDone }: { lessonId: string; onDone: (score: number, 
   const q = questions[i]!;
   const correct = picked === q.answer;
   return (
+    <>
     <Panel tone="cream" title={`Quiz ${i + 1}/${questions.length}`}>
       <p className="mb-2 font-display text-lg text-ink">
         <RichText text={q.prompt} />
@@ -90,24 +91,29 @@ function Quiz({ lessonId, onDone }: { lessonId: string; onDone: (score: number, 
             <FeedbackBanner tone={correct ? 'best' : 'mistake'} title={correct ? 'Correct!' : 'Not quite'}>
               <RichText text={q.why} />
             </FeedbackBanner>
-            <GameButton
-              className="mt-2"
-              color="gold"
-              fullWidth
-              onClick={() => {
-                if (i + 1 >= questions.length) onDone(score, questions.length);
-                else {
-                  setI(i + 1);
-                  setPicked(null);
-                }
-              }}
-            >
-              {i + 1 >= questions.length ? 'Finish' : 'Next question'}
-            </GameButton>
           </motion.div>
         )}
       </AnimatePresence>
     </Panel>
+    {picked !== null && (
+      <ActionDock tabs>
+        <GameButton
+          color="gold"
+          size="lg"
+          fullWidth
+          onClick={() => {
+            if (i + 1 >= questions.length) onDone(score, questions.length);
+            else {
+              setI(i + 1);
+              setPicked(null);
+            }
+          }}
+        >
+          {i + 1 >= questions.length ? 'Finish' : 'Next question'}
+        </GameButton>
+      </ActionDock>
+    )}
+    </>
   );
 }
 
@@ -153,9 +159,11 @@ export function LessonScreen() {
               </motion.div>
             ))}
           </div>
-          <GameButton color="gold" size="lg" fullWidth onClick={() => setPhase('quiz')}>
-            Take the quiz
-          </GameButton>
+          <ActionDock tabs>
+            <GameButton color="gold" size="lg" fullWidth onClick={() => setPhase('quiz')}>
+              Take the quiz
+            </GameButton>
+          </ActionDock>
         </>
       )}
       {phase === 'quiz' && (
