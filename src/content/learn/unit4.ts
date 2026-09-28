@@ -1,4 +1,4 @@
-import { bluffBreakeven, classifyBoard, minimumDefenseFrequency, requiredEquity, STREET_BLUFF_FACTOR } from '../../engine';
+import { actionProbs, bluffBreakeven, classifyBoard, minimumDefenseFrequency, REGULAR_MODEL, requiredEquity, STREET_BLUFF_FACTOR } from '../../engine';
 import { pct } from './fmt';
 import type { Unit } from './types';
 
@@ -134,15 +134,28 @@ export const UNIT4: Unit = {
       blocks: [
         { kind: 'p', text: 'Medium-strength hands (second pair, weak top pair) like small pots: check to control the size, call reasonable bets, and avoid turning your hand into a bluff.' },
         { kind: 'p', text: 'Check-raising out of position builds the pot with strong hands and puts pressure on c-bets with strong draws. Mix both so you are not predictable.' },
-        { kind: 'todo', text: 'This lesson gives qualitative guidance; check-raise frequencies are not modelled by the engine yet.' },
+        {
+          kind: 'p',
+          text: () => {
+            const raise = (b: Parameters<typeof actionProbs>[1], draw = false) => pct(actionProbs(REGULAR_MODEL, b, 0.5, draw).raise, 0);
+            return `The trainer’s default opponent, facing a half-pot bet, check-raises ${raise('monster')} of its sets and two pairs, ${raise('draw', true)} of its strong draws, ${raise('strong')} of its top pairs and overpairs, and almost never its medium hands. So a check-raise is weighted to value: when you get check-raised, one pair is usually in trouble.`;
+          },
+        },
+        { kind: 'todo', text: 'The check-raise shares are simplified model assumptions (villainModel.ts), not solver output. Aggressive profiles raise more, passive ones less.' },
         { kind: 'example', example: 'spr' },
       ],
       quiz: [
         { prompt: 'With second pair on a wet board, often…', choices: ['Check and control the pot', 'Overbet'], answer: 0, why: 'Big bets fold worse and get called by better.' },
         { prompt: 'Good check-raise hands include…', choices: ['Sets and strong draws', 'Ace-high'], answer: 0, why: 'Value hands and semi-bluffs with lots of equity.' },
         { prompt: 'Pot control is for…', choices: ['Medium-strength hands', 'The nuts'], answer: 0, why: 'Strong hands want big pots.' },
+        {
+          prompt: 'You c-bet top pair and get check-raised by a solid player. Their range is mostly…',
+          choices: ['Strong value and strong draws', 'Bluffs with nothing'],
+          answer: 0,
+          why: () => `In the model, sets and two pair check-raise ${pct(actionProbs(REGULAR_MODEL, 'monster', 0.5).raise, 0)} of the time vs a half-pot bet; air that continues is rare.`,
+        },
       ],
-      drill: { route: '/train/postflop/play?theme=facing', label: 'Facing bets' },
+      drill: { route: '/train/postflop/play?theme=checkraise', label: 'Check-raises' },
     },
   ],
 };

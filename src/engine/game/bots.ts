@@ -5,7 +5,7 @@
 import { COMBOS } from '../range';
 import { classifyHand } from '../postflop/buckets';
 import { preflopRanking } from '../preflop/ranking';
-import { continueProb, forStreet, type VillainModel } from '../strategy/villainModel';
+import { actionProbs, forStreet, type VillainModel } from '../strategy/villainModel';
 import { STREET_BLUFF_FACTOR } from '../strategy/villainModel';
 import { statsToModel, type ArchetypeId, type PlayerStats } from '../exploit/profiles';
 import type { Rng } from '../rng';
@@ -97,10 +97,10 @@ export function botDecision(s: HandState, bot: BotProfile, rng: Rng): PlayerActi
   const r = rng();
   if (la.toCall > 0) {
     const frac = la.toCall / Math.max(1, pot - la.toCall);
-    const cont = continueProb(model, info.bucket, frac, info.strongDraw);
-    const raiseP = info.bucket === 'monster' ? Math.min(0.6, aggr / 8) : info.strongDraw ? Math.min(0.35, aggr / 14) : info.bucket === 'air' ? Math.min(0.2, (aggr - 2) / 20) : 0;
-    if (la.canRaise && r < raiseP) return raiseTo(s, s.currentBet * 3);
-    return r < raiseP + cont * (1 - raiseP) ? { type: 'call' } : { type: 'fold' };
+    // Same fold / call / raise model the coach and the trainers use (raises include check-raises).
+    const p = actionProbs(model, info.bucket, frac, info.strongDraw);
+    if (la.canRaise && r < p.raise) return raiseTo(s, s.currentBet * 3);
+    return r < p.raise + p.call ? { type: 'call' } : { type: 'fold' };
   }
   const bluff = Math.min(0.6, 0.12 * model.bluffFactor * STREET_BLUFF_FACTOR[street]);
   const betP = info.bucket === 'air' ? bluff : info.bucket === 'weak' ? Math.max(model.betFreq.weak, bluff * 0.35) : model.betFreq[info.bucket];

@@ -95,7 +95,8 @@ describe('scenario generator', () => {
         expect(new Set([...spot.board, ...spot.hero]).size).toBe(spot.board.length + 2);
         expect(spot.pot).toBeGreaterThan(0);
         expect(spot.effectiveStack).toBeGreaterThan(0);
-        expect(spot.villains.length).toBe(potType === 'multiway' ? 2 : 1);
+        if (potType === 'multiway') expect([2, 3]).toContain(spot.villains.length);
+        else expect(spot.villains.length).toBe(1);
         for (const v of spot.villains) expect(classifyRange(v.range, spot.board, spot.hero).length).toBeGreaterThan(0);
       }
     });

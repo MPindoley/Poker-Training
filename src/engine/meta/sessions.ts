@@ -35,14 +35,14 @@ export const VENUE_KINDS: Record<Venue, Record<SkillArea, readonly string[]>> = 
   home: {
     math: ['math.potodds', 'math.outs', 'math.rule24', 'math.callfold'],
     preflop: ['preflop.flash', 'preflop.defense'],
-    postflop: ['postflop.short', 'postflop.value', 'postflop.facing'],
+    postflop: ['postflop.short', 'postflop.value', 'postflop.facing', 'postflop.multiway'],
     exploits: ['exploit.efls', 'exploit.image'],
     reading: ['postflop.reading', 'math.combos'],
   },
   casino: {
     math: ['math.potodds', 'math.mdf', 'math.ev', 'math.bluff'],
     preflop: ['preflop.flash', 'preflop.defense', 'preflop.sizing', 'preflop.ladder'],
-    postflop: ['postflop.cbet', 'postflop.facing', 'postflop.bluff', 'postflop.value'],
+    postflop: ['postflop.cbet', 'postflop.facing', 'postflop.checkraise', 'postflop.turn', 'postflop.river'],
     exploits: ['exploit.efls', 'exploit.image'],
     reading: ['postflop.reading', 'math.combos'],
   },
